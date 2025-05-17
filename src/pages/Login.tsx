@@ -8,7 +8,6 @@ import {
   Button,
   Typography,
   Link,
-  Container,
   Alert,
 } from '@mui/material';
 import styled from 'styled-components';
@@ -30,21 +29,24 @@ const StyledCard = styled(Card)`
   padding: 16px;
 `;
 
+const FullScreenWrapper = styled.div`
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(45deg, #1976D2 30%, #0D47A1 90%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 function Login(): React.ReactElement {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<FormData>({
-    email: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState<FormData>({ email: '', password: '' });
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setError('');
   };
 
@@ -64,30 +66,15 @@ function Login(): React.ReactElement {
   };
 
   return (
-    <Container
-      sx={{
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(45deg, #1976D2 30%, #0D47A1 90%)',
-      }}
-    >
+    <FullScreenWrapper>
       <StyledCard>
         <CardContent>
           <Box
             component="form"
             onSubmit={handleSubmit}
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
+            sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
           >
-            <Logo
-              src="/tecno.png"
-              alt="Tecnospeed"
-            />
+            <Logo src="/tecno.png" alt="Tecnospeed" />
             <Typography variant="h5" component="h1" gutterBottom>
               Login
             </Typography>
@@ -124,27 +111,17 @@ function Login(): React.ReactElement {
               onChange={handleChange}
               disabled={loading}
             />
-            <Link
-              href="#"
-              variant="body2"
-              sx={{ alignSelf: 'flex-end', mb: 2 }}
-            >
+            <Link href="#" variant="body2" sx={{ alignSelf: 'flex-end', mb: 2 }}>
               Esqueci minha senha
             </Link>
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 2 }}
-              disabled={loading}
-            >
+            <Button type="submit" fullWidth variant="contained" sx={{ mt: 2 }} disabled={loading}>
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </Box>
         </CardContent>
       </StyledCard>
-    </Container>
+    </FullScreenWrapper>
   );
 }
 
-export default Login; 
+export default Login;
