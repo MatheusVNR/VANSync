@@ -28,48 +28,59 @@ interface ProductItem {
   description: string;
 }
 
+// Sidebar
 const StyledSidebar = styled(Paper)`
-  width: 250px;
-  padding: 16px;
+  width: 300px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 15px;
   height: calc(100vh - 64px);
   position: fixed;
   left: 0;
   top: 64px;
+  background-color: #f5f5f5;
 `;
 
+// Conteúdo principal com margin-left igual à largura da sidebar
 const StyledContent = styled(Box)`
-  margin-left: 250px;
+  margin-left: 300px;
   padding: 24px;
 `;
 
-const StepButton = styled(Button)<StepButtonProps>`
-  justify-content: flex-start;
-  text-align: left;
+// Botão de passo estilizado
+const StepButton = styled(Box)<StepButtonProps>`
   padding: 16px;
-  background-color: ${props => props.active ? '#e3f2fd' : 'transparent'};
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background-color: ${({ active }) => (active ? '#003f71' : '#f5f5f5')};
+  color: ${({ active }) => (active ? '#ffffff' : '#333')};
+  font-weight: ${({ active }) => (active ? 'bold' : 'normal')};
+  cursor: ${({ active }) => (active ? 'pointer' : 'default')};
+  opacity: ${({ active }) => (active === false ? 0.6 : 1)};
+  pointer-events: ${({ active }) => (active === false ? 'none' : 'auto')};
+  transition: background-color 0.3s;
+
   &:hover {
-    background-color: #e3f2fd;
+    background-color: ${({ active }) => (active ? '#003f71' : '#e0e0e0')};
   }
 `;
 
 const ProductCard = styled(Card)<ProductCardProps>`
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 2px solid ${props => props.selected ? '#1976D2' : 'transparent'};
+  border: 2px solid ${(props) => (props.selected ? '#1976D2' : 'transparent')};
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   }
 `;
 
 function ProductSelection(): React.ReactElement {
   const navigate = useNavigate();
   const { vanData, updateVanData } = useVan();
-  const [selectedProducts, setSelectedProducts] = useState<string[]>(
-    vanData.selectedProducts?.map(p => p.id) || []
+  const [selectedProduct, setSelectedProduct] = useState<string>(
+    vanData.selectedProducts?.[0]?.id || ''
   );
 
   const products: ProductItem[] = [
@@ -95,28 +106,24 @@ function ProductSelection(): React.ReactElement {
     },
   ];
 
-  const toggleProduct = (productId: string): void => {
-    setSelectedProducts(prev => {
-      if (prev.includes(productId)) {
-        return prev.filter(id => id !== productId);
-      }
-      return [...prev, productId];
-    });
+  const selectProduct = (productId: string): void => {
+    setSelectedProduct((prev) => (prev === productId ? '' : productId));
   };
 
   const handleNext = (): void => {
-    if (selectedProducts.length > 0) {
-      // Converter IDs selecionados para objetos de produtos
-      const productsToSave: Product[] = products
-        .filter(product => selectedProducts.includes(product.id))
-        .map(product => ({
-          id: product.id,
-          name: product.title,
-          description: product.description,
-        }));
-      
-      updateVanData({ selectedProducts: productsToSave });
-      navigate('/company-data');
+    if (selectedProduct) {
+      const productToSave = products.find((p) => p.id === selectedProduct);
+      if (productToSave) {
+        updateVanData({
+          selectedProducts: [
+            {
+              id: productToSave.id,
+              name: productToSave.title,
+            },
+          ],
+        });
+        navigate('/company-data');
+      }
     }
   };
 
@@ -137,26 +144,37 @@ function ProductSelection(): React.ReactElement {
           zIndex: 1000,
         }}
       >
-        <img
-          src="/tecno_branca.png"
-          alt="Tecnospeed"
-          style={{ height: '30px' }}
-        />
+        <img src="/tecno_branca.png" alt="Tecnospeed" style={{ height: '30px' }} />
       </Box>
 
       {/* Sidebar */}
       <StyledSidebar elevation={1}>
-        <StepButton variant="text" color="primary">
-          1. Instituição bancária
+        <StepButton active={false}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Instituição bancária
+          </Typography>
+          <Typography variant="body2">Selecione uma instituição</Typography>
         </StepButton>
-        <StepButton active variant="text" color="primary">
-          2. Produtos
+
+        <StepButton active>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Produtos
+          </Typography>
+          <Typography variant="body2">Selecione um ou mais produtos</Typography>
         </StepButton>
-        <StepButton variant="text" disabled>
-          3. Preenchimento de dados
+
+        <StepButton active={false}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Preenchimento de dados
+          </Typography>
+          <Typography variant="body2">Preencha os dados solicitados</Typography>
         </StepButton>
-        <StepButton variant="text" disabled>
-          4. Conferir e validar
+
+        <StepButton active={false}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Conferir e validar
+          </Typography>
+          <Typography variant="body2">Confirme os dados antes de enviar</Typography>
         </StepButton>
       </StyledSidebar>
 
@@ -174,8 +192,8 @@ function ProductSelection(): React.ReactElement {
             {products.map((product) => (
               <Grid item xs={12} sm={6} key={product.id}>
                 <ProductCard
-                  selected={selectedProducts.includes(product.id)}
-                  onClick={() => toggleProduct(product.id)}
+                  selected={selectedProduct === product.id}
+                  onClick={() => selectProduct(product.id)}
                 >
                   <CardContent>
                     <Typography variant="h6" gutterBottom>
@@ -191,17 +209,10 @@ function ProductSelection(): React.ReactElement {
           </Grid>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-            <Button
-              variant="outlined"
-              onClick={() => navigate('/bank-selection')}
-            >
+            <Button variant="outlined" onClick={() => navigate('/bank-selection')}>
               Voltar
             </Button>
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              disabled={selectedProducts.length === 0}
-            >
+            <Button variant="contained" onClick={handleNext} disabled={!selectedProduct}>
               Próximo
             </Button>
           </Box>
@@ -211,4 +222,4 @@ function ProductSelection(): React.ReactElement {
   );
 }
 
-export default ProductSelection; 
+export default ProductSelection;

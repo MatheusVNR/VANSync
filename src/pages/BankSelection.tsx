@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -21,30 +21,65 @@ interface StepButtonProps {
   active?: boolean;
 }
 
+// Estilo da sidebar responsiva
 const StyledSidebar = styled(Paper)`
-  width: 250px;
-  padding: 16px;
+  width: 300px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 15px;
   height: calc(100vh - 64px);
   position: fixed;
   left: 0;
   top: 64px;
+  background-color: #f5f5f5;
+  z-index: 1100; /* Garante que a sidebar fique acima do conteúdo em telas menores */
+
+  @media (max-width: 960px) {
+    width: 100%;
+    position: static;
+    height: auto;
+    border-bottom: 1px solid #ddd;
+  }
 `;
 
+// Estilo do conteúdo principal responsivo
 const StyledContent = styled(Box)`
-  margin-left: 250px;
+  margin-left: 300px;
   padding: 24px;
+
+  @media (max-width: 960px) {
+    margin-left: 0;
+    padding-top: 100px; /* Espaço para a sidebar quando ela fica no topo */
+  }
+
+  @media (max-width: 600px) {
+    padding: 16px;
+    padding-top: 90px;
+  }
 `;
 
-const StepButton = styled(Button)<StepButtonProps>`
-  justify-content: flex-start;
-  text-align: left;
+// Estilo dos botões de etapa responsivos
+const StepButton = styled(Box)<StepButtonProps>`
   padding: 16px;
-  background-color: ${props => props.active ? '#e3f2fd' : 'transparent'};
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background-color: ${({ active }) => (active ? '#003f71' : '#f5f5f5')};
+  color: ${({ active }) => (active ? '#ffffff' : '#333')};
+  font-weight: ${({ active }) => (active ? 'bold' : 'normal')};
+  cursor: ${({ active }) => (active ? 'pointer' : 'default')};
+  opacity: ${({ active }) => (active === false ? 0.6 : 1)};
+  pointer-events: ${({ active }) => (active === false ? 'none' : 'auto')};
+  transition: background-color 0.3s;
+
   &:hover {
-    background-color: #e3f2fd;
+    background-color: ${({ active }) => (active ? '#003f71' : '#e0e0e0')};
+  }
+
+  @media (max-width: 960px) {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 `;
 
@@ -117,17 +152,40 @@ function BankSelection(): React.ReactElement {
 
       {/* Sidebar */}
       <StyledSidebar elevation={1}>
-        <StepButton active variant="text" color="primary">
-          1. Instituição bancária
+        <StepButton active>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Instituição bancária
+          </Typography>
+          <Typography variant="body2">
+            Selecione uma instituição
+          </Typography>
         </StepButton>
-        <StepButton variant="text" disabled>
-          2. Produtos
+
+        <StepButton active={false}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Produtos
+          </Typography>
+          <Typography variant="body2">
+            Selecione um ou mais produtos
+          </Typography>
         </StepButton>
-        <StepButton variant="text" disabled>
-          3. Preenchimento de dados
+
+        <StepButton active={false}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Preenchimento de dados
+          </Typography>
+          <Typography variant="body2">
+            Selecione um ou mais produtos
+          </Typography>
         </StepButton>
-        <StepButton variant="text" disabled>
-          4. Conferir e validar
+
+        <StepButton active={false}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Conferir e validar
+          </Typography>
+          <Typography variant="body2">
+            Confirme os dados antes de enviar
+          </Typography>
         </StepButton>
       </StyledSidebar>
 
@@ -155,9 +213,6 @@ function BankSelection(): React.ReactElement {
               fullWidth
               sx={{ mb: 3 }}
             >
-              <MenuItem value="" disabled>
-                Selecione um banco
-              </MenuItem>
               {banks.map((bank) => (
                 <MenuItem key={bank.id} value={bank.id}>
                   {bank.code} - {bank.name}
@@ -165,13 +220,7 @@ function BankSelection(): React.ReactElement {
               ))}
             </Select>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-              <Button
-                variant="outlined"
-                onClick={() => navigate('/')}
-              >
-                Voltar
-              </Button>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 5 }}>
               <Button
                 variant="contained"
                 onClick={handleNext}
@@ -187,4 +236,4 @@ function BankSelection(): React.ReactElement {
   );
 }
 
-export default BankSelection; 
+export default BankSelection;

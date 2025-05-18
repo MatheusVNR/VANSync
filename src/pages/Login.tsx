@@ -32,11 +32,15 @@ const StyledCard = styled(Card)`
 const FullScreenWrapper = styled.div`
   height: 100vh;
   width: 100vw;
-  background: linear-gradient(45deg, #1976D2 30%, #0D47A1 90%);
+  background-image: url('/background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
 `;
+
 
 function Login(): React.ReactElement {
   const navigate = useNavigate();

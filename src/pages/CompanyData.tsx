@@ -8,10 +8,11 @@ import {
   Button,
   Paper,
   Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+    FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
 } from '@mui/material';
 import styled from 'styled-components';
 import { useVan } from '../contexts/VanContext';
@@ -25,8 +26,11 @@ interface FormDataType {
   responsavelEmail: string;
   banco: string;
   agencia: string;
+  agenciaDv: string;
   conta: string;
+  contaDv: string;
   convenio: string;
+  cnab: string;
   gerenteConta: string;
   gerenteTelefone: string;
   gerenteEmail: string;
@@ -37,53 +41,64 @@ interface StepButtonProps {
 }
 
 const StyledSidebar = styled(Paper)`
-  width: 250px;
-  padding: 16px;
+  width: 300px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 15px;
   height: calc(100vh - 64px);
   position: fixed;
   left: 0;
   top: 64px;
+  background-color: #f5f5f5;
 `;
 
 const StyledContent = styled(Box)`
-  margin-left: 250px;
+  margin-left: 300px;
   padding: 24px;
 `;
 
-const StepButton = styled(Button)<StepButtonProps>`
-  justify-content: flex-start;
-  text-align: left;
+const StepButton = styled(Box)<StepButtonProps>`
   padding: 16px;
-  background-color: ${props => props.active ? '#e3f2fd' : 'transparent'};
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background-color: ${({ active }) => (active ? '#003f71' : '#f5f5f5')};
+  color: ${({ active }) => (active ? '#ffffff' : '#333')};
+  font-weight: ${({ active }) => (active ? 'bold' : 'normal')};
+  cursor: ${({ active }) => (active ? 'pointer' : 'default')};
+  opacity: ${({ active }) => (active === false ? 0.6 : 1)};
+  pointer-events: ${({ active }) => (active === false ? 'none' : 'auto')};
+  transition: background-color 0.3s;
+
   &:hover {
-    background-color: #e3f2fd;
+    background-color: ${({ active }) => (active ? '#003f71' : '#e0e0e0')};
   }
 `;
 
 function CompanyData(): React.ReactElement {
   const navigate = useNavigate();
   const { vanData, updateVanData } = useVan();
-  
-  const [formData, setFormData] = useState<FormDataType>({
-    cnpj: '',
-    razaoSocial: '',
-    responsavelNome: '',
-    responsavelCargo: '',
-    responsavelTelefone: '',
-    responsavelEmail: '',
-    banco: vanData.selectedBank?.name || '',
-    agencia: '',
-    conta: '',
-    convenio: '',
-    gerenteConta: '',
-    gerenteTelefone: '',
-    gerenteEmail: '',
-  });
 
-  // Preencher o formulário com dados existentes no contexto, se houver
+  const [formData, setFormData] = useState<FormDataType>({
+  cnpj: '',
+  razaoSocial: '',
+  responsavelNome: '',
+  responsavelCargo: '',
+  responsavelTelefone: '',
+  responsavelEmail: '',
+  banco: vanData.selectedBank?.name || '',
+  agencia: '',
+  agenciaDv: '',
+  conta: '',
+  contaDv: '',
+  convenio: '',
+  cnab: '',
+  gerenteConta: '',
+  gerenteTelefone: '',
+  gerenteEmail: '',
+});
+
+
   useEffect(() => {
     if (vanData.companyData) {
       setFormData({
@@ -92,11 +107,12 @@ function CompanyData(): React.ReactElement {
         banco: vanData.selectedBank?.name || '',
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -104,27 +120,33 @@ function CompanyData(): React.ReactElement {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    
-    console.log('Formulário enviado com sucesso:', formData);
-    
-    // Salvar dados no contexto antes de navegar
+
     updateVanData({
-      companyData: formData
+      companyData: formData,
     });
-    
-    // Navegue para a revisão
+
     navigate('/review');
   };
 
   const isFormValid = (): boolean => {
-    // Verificar se todos os campos obrigatórios estão preenchidos
     const requiredFields = [
-      'cnpj', 'razaoSocial', 'responsavelNome', 'responsavelCargo', 
-      'responsavelTelefone', 'responsavelEmail', 'agencia', 'conta', 
-      'convenio', 'gerenteConta', 'gerenteTelefone', 'gerenteEmail'
+      'cnpj',
+      'razaoSocial',
+      'responsavelNome',
+      'responsavelCargo',
+      'responsavelTelefone',
+      'responsavelEmail',
+      'agencia',
+      'conta',
+      'convenio',
+      'gerenteConta',
+      'gerenteTelefone',
+      'gerenteEmail',
     ];
-    
-    return requiredFields.every(field => formData[field as keyof FormDataType]?.trim() !== '');
+
+    return requiredFields.every(
+      (field) => formData[field as keyof FormDataType]?.trim() !== ''
+    );
   };
 
   return (
@@ -144,26 +166,37 @@ function CompanyData(): React.ReactElement {
           zIndex: 1000,
         }}
       >
-        <img
-          src="/tecno_branca.png"
-          alt="Tecnospeed"
-          style={{ height: '30px' }}
-        />
+        <img src="/tecno_branca.png" alt="Tecnospeed" style={{ height: '30px' }} />
       </Box>
 
       {/* Sidebar */}
       <StyledSidebar elevation={1}>
-        <StepButton variant="text" color="primary">
-          1. Instituição bancária
+        <StepButton active={false} onClick={() => navigate('/bank-selection')}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Instituição bancária
+          </Typography>
+          <Typography variant="body2">Selecione uma instituição</Typography>
         </StepButton>
-        <StepButton variant="text" color="primary">
-          2. Produtos
+
+        <StepButton active={false} onClick={() => navigate('/product-selection')}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Produtos
+          </Typography>
+          <Typography variant="body2">Selecione um ou mais produtos</Typography>
         </StepButton>
-        <StepButton active variant="text" color="primary">
-          3. Preenchimento de dados
+
+        <StepButton active>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Preenchimento de dados
+          </Typography>
+          <Typography variant="body2">Preencha os dados solicitados</Typography>
         </StepButton>
-        <StepButton variant="text" disabled>
-          4. Conferir e validar
+
+        <StepButton active={false}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Conferir e validar
+          </Typography>
+          <Typography variant="body2">Confirme os dados antes de enviar</Typography>
         </StepButton>
       </StyledSidebar>
 
@@ -251,41 +284,92 @@ function CompanyData(): React.ReactElement {
               </Grid>
             </Grid>
 
-            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-              Conta
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Agência"
-                  name="agencia"
-                  value={formData.agencia}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Conta"
-                  name="conta"
-                  value={formData.conta}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Convênio"
-                  name="convenio"
-                  value={formData.convenio}
-                  onChange={handleChange}
-                />
-              </Grid>
-            </Grid>
+           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+ 
+          </Typography>
+          <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+            Conta
+          </Typography>
+         <Grid container spacing={2} alignItems="center">
+  <Grid item xs={12} sm={4}>
+    <TextField
+      required
+      fullWidth
+      label="Banco"
+      name="banco"
+      value={formData.banco}
+      onChange={handleChange}
+    />
+  </Grid>
+  <Grid item xs={12} sm={2.2}>
+    <TextField
+      required
+      fullWidth
+      label="Agência"
+      name="agencia"
+      value={formData.agencia}
+      onChange={handleChange}
+    />
+  </Grid>
+  <Grid item xs={6} sm={2}>
+    <TextField
+      required
+      fullWidth
+      label="DV Agência"
+      name="agenciaDv"
+      value={formData.agenciaDv}
+      onChange={handleChange}
+    />
+  </Grid>
+  <Grid item xs={12} sm={2.3}>
+    <TextField
+      required
+      fullWidth
+      label="Conta"
+      name="conta"
+      value={formData.conta}
+      onChange={handleChange}
+    />
+  </Grid>
+  <Grid item xs={6} sm={1.5}>
+    <TextField
+      required
+      fullWidth
+      label="DV Conta"
+      name="contaDv"
+      value={formData.contaDv}
+      onChange={handleChange}
+    />
+  </Grid>
+
+  <Grid item xs={12} sm={4}>
+    <TextField
+      required
+      fullWidth
+      label="Convênio"
+      name="convenio"
+      value={formData.convenio}
+      onChange={handleChange}
+    />
+  </Grid>
+  <Grid item xs={12} sm={6}>
+    <FormControl component="fieldset" required fullWidth>
+      <FormLabel component="legend">CNAB</FormLabel>
+      <RadioGroup
+        row
+        name="cnab"
+        value={formData.cnab}
+        onChange={handleChange}
+      >
+        <FormControlLabel value="240" control={<Radio />} label="240" />
+        <FormControlLabel value="400" control={<Radio />} label="400" />
+        <FormControlLabel value="444" control={<Radio />} label="444" />
+      </RadioGroup>
+    </FormControl>
+  </Grid>
+</Grid>
+
+
 
             <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
               Gerente Conta
@@ -325,39 +409,13 @@ function CompanyData(): React.ReactElement {
             </Grid>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-              <Button
-                variant="outlined"
-                onClick={() => navigate('/product-selection')}
-              >
+              <Button variant="outlined" onClick={() => navigate('/product-selection')}>
                 Voltar
               </Button>
               <Button
-                type="button"
+                type="submit"
                 variant="contained"
                 disabled={!isFormValid()}
-                onClick={() => {
-                  // Forçar o salvamento dos dados
-                  updateVanData({
-                    companyData: {
-                      cnpj: (document.querySelector('input[name="cnpj"]') as HTMLInputElement)?.value || '',
-                      razaoSocial: (document.querySelector('input[name="razaoSocial"]') as HTMLInputElement)?.value || '',
-                      responsavelNome: (document.querySelector('input[name="responsavelNome"]') as HTMLInputElement)?.value || '',
-                      responsavelCargo: (document.querySelector('input[name="responsavelCargo"]') as HTMLInputElement)?.value || '',
-                      responsavelTelefone: (document.querySelector('input[name="responsavelTelefone"]') as HTMLInputElement)?.value || '',
-                      responsavelEmail: (document.querySelector('input[name="responsavelEmail"]') as HTMLInputElement)?.value || '',
-                      banco: vanData.selectedBank?.name || 'Banco Padrão',
-                      agencia: (document.querySelector('input[name="agencia"]') as HTMLInputElement)?.value || '',
-                      conta: (document.querySelector('input[name="conta"]') as HTMLInputElement)?.value || '',
-                      convenio: (document.querySelector('input[name="convenio"]') as HTMLInputElement)?.value || '',
-                      gerenteConta: (document.querySelector('input[name="gerenteConta"]') as HTMLInputElement)?.value || '',
-                      gerenteTelefone: (document.querySelector('input[name="gerenteTelefone"]') as HTMLInputElement)?.value || '',
-                      gerenteEmail: (document.querySelector('input[name="gerenteEmail"]') as HTMLInputElement)?.value || '',
-                    }
-                  });
-                  
-                  // Navegação usando JavaScript puro
-                  window.location.href = '/review';
-                }}
               >
                 Revisar
               </Button>
@@ -369,4 +427,4 @@ function CompanyData(): React.ReactElement {
   );
 }
 
-export default CompanyData; 
+export default CompanyData;
