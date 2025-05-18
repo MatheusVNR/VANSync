@@ -28,7 +28,7 @@ interface ProductItem {
   description: string;
 }
 
-// Sidebar
+// Sidebar 
 const StyledSidebar = styled(Paper)`
   width: 300px;
   padding: 20px;
@@ -48,7 +48,7 @@ const StyledContent = styled(Box)`
   padding: 24px;
 `;
 
-// Botão de passo estilizado
+// Botão de passo estilizado 
 const StepButton = styled(Box)<StepButtonProps>`
   padding: 16px;
   border-radius: 8px;
@@ -79,8 +79,8 @@ const ProductCard = styled(Card)<ProductCardProps>`
 function ProductSelection(): React.ReactElement {
   const navigate = useNavigate();
   const { vanData, updateVanData } = useVan();
-  const [selectedProduct, setSelectedProduct] = useState<string>(
-    vanData.selectedProducts?.[0]?.id || ''
+  const [selectedProducts, setSelectedProducts] = useState<string[]>(
+    vanData.selectedProducts?.map((p) => p.id) || []
   );
 
   const products: ProductItem[] = [
@@ -106,24 +106,27 @@ function ProductSelection(): React.ReactElement {
     },
   ];
 
-  const selectProduct = (productId: string): void => {
-    setSelectedProduct((prev) => (prev === productId ? '' : productId));
+  const toggleProduct = (productId: string): void => {
+    setSelectedProducts((prev) => {
+      if (prev.includes(productId)) {
+        return prev.filter((id) => id !== productId);
+      }
+      return [...prev, productId];
+    });
   };
 
   const handleNext = (): void => {
-    if (selectedProduct) {
-      const productToSave = products.find((p) => p.id === selectedProduct);
-      if (productToSave) {
-        updateVanData({
-          selectedProducts: [
-            {
-              id: productToSave.id,
-              name: productToSave.title,
-            },
-          ],
-        });
-        navigate('/company-data');
-      }
+    if (selectedProducts.length > 0) {
+      const productsToSave: Product[] = products
+        .filter((product) => selectedProducts.includes(product.id))
+        .map((product) => ({
+          id: product.id,
+          name: product.title,
+          description: product.description,
+        }));
+
+      updateVanData({ selectedProducts: productsToSave });
+      navigate('/company-data');
     }
   };
 
@@ -192,8 +195,8 @@ function ProductSelection(): React.ReactElement {
             {products.map((product) => (
               <Grid item xs={12} sm={6} key={product.id}>
                 <ProductCard
-                  selected={selectedProduct === product.id}
-                  onClick={() => selectProduct(product.id)}
+                  selected={selectedProducts.includes(product.id)}
+                  onClick={() => toggleProduct(product.id)}
                 >
                   <CardContent>
                     <Typography variant="h6" gutterBottom>
@@ -212,7 +215,7 @@ function ProductSelection(): React.ReactElement {
             <Button variant="outlined" onClick={() => navigate('/bank-selection')}>
               Voltar
             </Button>
-            <Button variant="contained" onClick={handleNext} disabled={!selectedProduct}>
+            <Button variant="contained" onClick={handleNext} disabled={selectedProducts.length === 0}>
               Próximo
             </Button>
           </Box>
