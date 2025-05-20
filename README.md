@@ -11,7 +11,7 @@ Este é um sistema para geração de cartas VAN da Tecnospeed, desenvolvido em R
 
 1. Clone o repositório:
 ```bash
-git clone [URL_DO_REPOSITÓRIO]
+git clone https://github.com/MatheusVNR/VANSync.git
 ```
 
 2. Instale as dependências:
