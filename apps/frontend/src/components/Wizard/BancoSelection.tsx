@@ -1,25 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import styled from 'styled-components';
+import {
+  Box,
+  Typography,
+  Button,
+  Alert,
+  CircularProgress,
+  Container,
+  Autocomplete,
+  TextField
+} from '@mui/material';
 
 export interface Banco {
   codigo: number;
   nome: string;
-  padrao_van: string;
-  cnab240: boolean;
-  cnab400: boolean;
-  cnab444: boolean;
-  produtos: string;
 }
 
 interface BancoSelectionProps {
-  onBancoSelected: (bank: Banco) => void;
+  onNext: (bank: Banco) => void;
 }
 
-const BancoSelection: React.FC<BancoSelectionProps> = ({ onBancoSelected }) => {
-  const [termoDeBusca, setTermoDeBusca] = useState('');
+const StyledContent = styled(Box)`
+  margin-left: 300px;
+  padding: 24px;
+  background-color: #f5f5f5;
+  
+  @media (max-width: 960px) {
+    margin-left: 0;
+    padding-top: 100px; /* Espaço para a sidebar quando ela fica no topo */
+  }
+
+  @media (max-width: 600px) {
+    padding: 16px;
+    padding-top: 90px;
+  }
+`;
+
+const BancoSelection: React.FC<BancoSelectionProps> = ({ onNext }) => {
   const [bancos, setBancos] = useState<Banco[]>([]);
-  const [bancosFiltrados, setBancosFiltrados] = useState<Banco[]>([]);
+  const [selectedBank, setSelectedBank] = useState<Banco | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
     const fetchBancos = async () => {
@@ -27,8 +50,8 @@ const BancoSelection: React.FC<BancoSelectionProps> = ({ onBancoSelected }) => {
       try {
         const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}banco`);
         setBancos(response.data);
-        setBancosFiltrados(response.data);
       } catch (error) {
+        setError('Erro ao carregar lista de bancos');
         console.error('Erro ao buscar bancos', error);
       } finally {
         setLoading(false);
@@ -38,41 +61,65 @@ const BancoSelection: React.FC<BancoSelectionProps> = ({ onBancoSelected }) => {
     fetchBancos();
   }, []);
 
-  useEffect(() => {
-    const filtered = bancos.filter((bank) =>
-      bank.nome.toLowerCase().includes(termoDeBusca.toLowerCase()) ||
-      bank.codigo.toString().includes(termoDeBusca)
-    );
-    setBancosFiltrados(filtered);
-  }, [termoDeBusca, bancos]);
+  const handleNext = () => {
+    if (selectedBank) {
+      onNext(selectedBank);
+    }
+  };
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Seleção de Banco</h2>
-      <input
-        type="text"
-        placeholder="Digite para buscar..."
-        value={termoDeBusca}
-        onChange={(e) => setTermoDeBusca(e.target.value)}
-        className="border p-2 rounded w-full mb-4"
-      />
-      {loading && <p>Carregando...</p>}
-      {bancosFiltrados.length === 0 && !loading ? (
-        <p className="text-red-500">Banco não encontrado</p>
-      ) : (
-        <ul className="space-y-2">
-          {bancosFiltrados.map((bank) => (
-            <li
-              key={bank.codigo}
-              onClick={() => onBancoSelected(bank)}
-              className="cursor-pointer p-2 border rounded hover:bg-gray-100"
-            >
-              {bank.codigo.toString().padStart(3, '0')} - {bank.nome}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <StyledContent>
+      <Container maxWidth="md" sx={{ mt: 8 }}>
+        <Typography variant="h5" gutterBottom>
+          1. Selecione um banco
+        </Typography>
+        <Typography variant="body1" color="text.secondary" gutterBottom>
+            Selecione uma instituição bancária para criar uma nova carta de VAN
+        </Typography>
+        
+        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+
+        {loading ? (
+          <CircularProgress />
+        ) : (
+          <Box sx={{ mt: 4 }}>
+            <Autocomplete
+              options={bancos}
+              getOptionLabel={(option) => `${option.codigo.toString().padStart(3, '0')} - ${option.nome}`}
+              value={selectedBank}
+              onChange={(_, newValue) => setSelectedBank(newValue)}
+              inputValue={inputValue}
+              onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
+              renderInput={(params) => (
+                <TextField 
+                  {...params} 
+                  label="Busque por código ou nome do banco" 
+                  variant="outlined"
+                  fullWidth
+                />
+              )}
+              filterOptions={(options, state) =>
+                options.filter(option =>
+                  option.nome.toLowerCase().includes(state.inputValue.toLowerCase()) ||
+                  option.codigo.toString().includes(state.inputValue)
+                )
+              }
+              sx={{ mb: 3 }}
+            />
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 5 }}>
+              <Button
+                variant="contained"
+                onClick={handleNext}
+                disabled={!selectedBank}
+              >
+                Próximo
+              </Button>
+            </Box>
+          </Box>
+        )}
+      </Container>
+    </StyledContent>
   );
 };
 

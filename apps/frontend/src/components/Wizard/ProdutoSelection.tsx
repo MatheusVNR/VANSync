@@ -1,10 +1,26 @@
 import React, { useState } from 'react';
+import styled from 'styled-components';
+import {
+  Container,
+  Box,
+  Typography,
+  Button,
+  Paper,
+  Grid,
+  Card,
+  CardContent,
+} from '@mui/material';
 
 interface ProductSelectionProps {
   banco: { produtos: string };
   onProductsSelected: (products: string[]) => void;
   onBack: () => void;
 }
+
+const StyledContent = styled(Box)`
+  margin-left: 300px;
+  padding: 24px;
+`;
 
 const ProdutoSelection: React.FC<ProductSelectionProps> = ({ banco, onProductsSelected, onBack }) => {
   const produtosDisponiveis = banco.produtos.split(',').map((prod) => prod.trim());

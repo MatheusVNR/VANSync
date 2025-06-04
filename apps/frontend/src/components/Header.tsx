@@ -1,12 +1,28 @@
 import React from 'react';
+import { Box } from '@mui/material';
 
 const Header: React.FC = () => {
   return (
-    <header className="bg-blue-600 text-white p-4">
-      <div className="container mx-auto flex items-center justify-between">
-        <div className="text-xl font-bold">VANSync</div>
-      </div>
-    </header>
+    <Box
+        sx={{
+          height: '64px',
+          backgroundColor: 'primary.main',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 24px',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+        }}
+      >
+        <img
+          src="images/tecno_branca.png"
+          alt="Tecnospeed"
+          style={{ height: '30px' }}
+        />
+    </Box>
   );
 };
 
