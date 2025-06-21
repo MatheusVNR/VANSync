@@ -30,6 +30,7 @@ export const TECNOSPEED_COLORS = {
   // Cores de fundo
   FUNDO_PRIMARIO: '#FFFFFF',
   FUNDO_SECUNDARIO: '#F5F5F5',
+  FUNDO_AZUL_SUAVE: '#F0F8FF',
   FUNDO_CARD: '#FFFFFF',
   
   // Cores de borda

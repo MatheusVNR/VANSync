@@ -1,4 +1,26 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Button,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+  useTheme,
+  useMediaQuery,
+  IconButton,
+  Tooltip,
+  Chip,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 import { getBancos, createBanco, updateBanco, deleteBanco } from '../../services/bancoService';
 import BancoForm from '../../components/cadastros/BancoForm';
 
@@ -17,6 +39,8 @@ const CadastroBancos: React.FC = () => {
   const [bancos, setBanks] = useState<Banco[]>([]);
   const [editingBank, setEditingBank] = useState<Banco | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const fetchBanks = async () => {
     try {
@@ -66,89 +90,158 @@ const CadastroBancos: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-center">Cadastro de Bancos</h1>
+    <Box>
+      {/* Botão Novo Banco */}
+      {!showForm && !editingBank && (
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setShowForm(true)}
+            sx={{
+              px: 4,
+              py: 1.5,
+              borderRadius: 2,
+              backgroundColor: theme.palette.success.main,
+              '&:hover': {
+                backgroundColor: theme.palette.success.dark,
+              },
+            }}
+          >
+            Novo Banco
+          </Button>
+        </Box>
+      )}
 
-        {!showForm && !editingBank && (
-          <div className="mb-6 text-center">
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
-            >
-              Novo Banco
-            </button>
-          </div>
-        )}
+      {/* Formulário */}
+      {(showForm || editingBank) && (
+        <Paper sx={{ mb: 4, p: 3 }}>
+          <BancoForm
+            initialData={editingBank ? { ...editingBank } : undefined}
+            onSubmit={editingBank ? handleUpdate : handleCreate}
+            onCancel={() => {
+              setShowForm(false);
+              setEditingBank(null);
+            }}
+          />
+        </Paper>
+      )}
 
-        {(showForm || editingBank) && (
-          <div className="mb-6">
-            <BancoForm
-              initialData={editingBank ? { ...editingBank } : undefined}
-              onSubmit={editingBank ? handleUpdate : handleCreate}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingBank(null);
-              }}
-            />
-          </div>
-        )}
-
-        <div className="bg-white rounded shadow overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-gray-200">
-              <tr>
-                <th className="py-2 px-4">Código</th>
-                <th className="py-2 px-4">Nome</th>
-                <th className="py-2 px-4">Padrão VAN</th>
-                <th className="py-2 px-4">CNAB 240</th>
-                <th className="py-2 px-4">CNAB 400</th>
-                <th className="py-2 px-4">CNAB 444</th>
-                <th className="py-2 px-4">Produtos</th>
-                <th className="py-2 px-4">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
+      {/* Tabela */}
+      <Paper sx={{ overflow: 'hidden' }}>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: theme.palette.grey[50] }}>
+                <TableCell sx={{ fontWeight: 600 }}>Código</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Nome</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Padrão VAN</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>CNAB 240</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>CNAB 400</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>CNAB 444</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Produtos</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Ações</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {bancos.map((bank) => (
-                <tr key={bank.codigo} className="border-b">
-                  <td className="py-2 px-4">{bank.codigo.toString().padStart(3, '0')}</td>
-                  <td className="py-2 px-4">{bank.nome}</td>
-                  <td className="py-2 px-4">{bank.padrao_van}</td>
-                  <td className="py-2 px-4">{bank.cnab240 ? 'Sim' : 'Não'}</td>
-                  <td className="py-2 px-4">{bank.cnab400 ? 'Sim' : 'Não'}</td>
-                  <td className="py-2 px-4">{bank.cnab444 ? 'Sim' : 'Não'}</td>
-                  <td className="py-2 px-4">{bank.produtos?.join(', ')}</td>
-                  <td className="py-2 px-4">
-                    <button
-                      onClick={() => {
-                        setEditingBank(bank);
-                        setShowForm(true);
-                      }}
-                      className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-colors mr-2"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(bank.codigo)}
-                      className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors"
-                    >
-                      Excluir
-                    </button>
-                  </td>
-                </tr>
+                <TableRow key={bank.codigo} hover>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      {bank.codigo.toString().padStart(3, '0')}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {bank.nome}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={bank.padrao_van} 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={bank.cnab240 ? 'Sim' : 'Não'} 
+                      size="small" 
+                      color={bank.cnab240 ? 'success' : 'default'}
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={bank.cnab400 ? 'Sim' : 'Não'} 
+                      size="small" 
+                      color={bank.cnab400 ? 'success' : 'default'}
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={bank.cnab444 ? 'Sim' : 'Não'} 
+                      size="small" 
+                      color={bank.cnab444 ? 'success' : 'default'}
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {bank.produtos?.map((produto, index) => (
+                        <Chip 
+                          key={index}
+                          label={produto} 
+                          size="small" 
+                          variant="outlined"
+                          sx={{ fontSize: '0.7rem' }}
+                        />
+                      ))}
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Tooltip title="Editar">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setEditingBank(bank);
+                            setShowForm(true);
+                          }}
+                          sx={{ color: theme.palette.primary.main }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Excluir">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDelete(bank.codigo)}
+                          sx={{ color: theme.palette.error.main }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                </TableRow>
               ))}
               {bancos.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="text-center py-4">
-                    Nenhum banco cadastrado.
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Nenhum banco cadastrado.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+    </Box>
   );
 };
 

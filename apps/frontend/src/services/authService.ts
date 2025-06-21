@@ -23,7 +23,19 @@ export interface AuthTokens {
 export const authService: IAuthService = {
   login: async (cnpj: string, token: string): Promise<LoginResponse> => {
     const response = await axiosInstance.post('/auth/login', { cnpj, token });
-    return response.data;
+    const data = response.data;
+    
+    // Salvar tokens no sessionStorage
+    const authData = {
+      accessToken: data.token,
+      refreshToken: data.refreshToken,
+      expiresAt: Date.now() + (data.expiresIn * 1000)
+    };
+    
+    sessionStorage.setItem('auth', JSON.stringify(authData));
+    sessionStorage.setItem('user', JSON.stringify(data.user));
+    
+    return data;
   },
 
   refresh: async (refreshToken: string): Promise<AuthTokens> => {

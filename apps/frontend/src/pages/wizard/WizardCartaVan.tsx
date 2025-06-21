@@ -1,17 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import StepWizard from 'react-step-wizard';
-import MainLayout from '../../components/MainLayout';
+import { useNavigate } from 'react-router-dom';
 import {
-  Paper,
   Box,
   Typography,
-  styled
+  useTheme,
+  useMediaQuery,
+  Container,
+  Alert,
+  Snackbar,
+  Stepper,
+  Step,
+  StepLabel,
+  StepContent,
+  Paper,
+  MobileStepper,
+  Button,
 } from '@mui/material';
+import {
+  KeyboardArrowLeft,
+  KeyboardArrowRight,
+  Check as CheckIcon,
+} from '@mui/icons-material';
 import Passo1BancoSelection from '../../components/Wizard/Passos/Passo1BancoSelection';
 import Passo2ProdutoSelection from '../../components/Wizard/Passos/Passo2ProdutoSelection';
 import Passo3CartaForm from '../../components/Wizard/Passos/Passo3CartaForm';
 import Passo4CartaPreview from '../../components/Wizard/Passos/Passo4CartaPreview';
-import Sidebar from '../../components/Sidebar';
+import Header from '../../components/Header';
+import { solicitacaoService, SolicitacaoCarta } from '../../services/solicitacaoService';
+import { authService } from '../../services/authService';
 
 enum WizardStepEnum {
   BankSelection,
@@ -20,122 +37,337 @@ enum WizardStepEnum {
   CartaPreview,
 }
 
-const StyledSidebar = styled(Paper)`
-  width: 300px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  height: calc(100vh - 64px);
-  position: fixed;
-  left: 0;
-  top: 64px;
-  background-color: #f5f5f5;
-`;
-
-const StepButton = styled(Box)<{ active: boolean; completed?: boolean }>`
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  background-color: ${({ active }) => (active ? '#003f71' : '#f5f5f5')};
-  color: ${({ active }) => (active ? '#ffffff' : '#333')};
-  font-weight: ${({ active }) => (active ? 'bold' : 'normal')};
-  cursor: ${({ active, completed }) => (active || completed ? 'pointer' : 'default')};
-  opacity: ${({ active, completed }) => (!active && !completed ? 0.6 : 1)};
-  transition: background-color 0.3s;
-
-  &:hover {
-    background-color: ${({ active }) => (active ? '#003f71' : '#e0e0e0')};
-  }
-`;
-
 const WizardCartaVan: React.FC = () => {
   const [wizard, setWizard] = useState<any>(null);
   const [currentStep, setCurrentStep] = useState<number>(WizardStepEnum.BankSelection);
   const [selectedBank, setSelectedBank] = useState<any>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [formData, setFormData] = useState<any>(null);
-  const [pdfUrl, setPdfUrl] = useState<string>('');
+  const [formData, setFormData] = useState<any>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const steps = [
     { 
-      title: '1. Instituição bancária', 
+      title: 'Instituição bancária', 
       description: 'Selecione uma instituição',
       step: WizardStepEnum.BankSelection
     },
     { 
-      title: '2. Produtos', 
+      title: 'Produtos', 
       description: 'Selecione um ou mais produtos',
       step: WizardStepEnum.ProductSelection
     },
     { 
-      title: '3. Preenchimento de dados', 
+      title: 'Preenchimento de dados', 
       description: 'Preencha os dados solicitados',
       step: WizardStepEnum.CartaForm
     },
     { 
-      title: '4. Conferir e validar', 
+      title: 'Conferir e validar', 
       description: 'Confirme os dados antes de enviar',
       step: WizardStepEnum.CartaPreview
     },
   ];
 
-  const handleStepClick = (stepIndex: number) => {
-    if (stepIndex < currentStep) {
-      wizard.goToStep(stepIndex + 1);
-      setCurrentStep(stepIndex);
+  const handleStepChange = (stats: any) => {
+    const newStep = stats.activeStep - 1;
+    setCurrentStep(newStep);
+    
+    // Marcar passos anteriores como concluídos
+    const newCompletedSteps = new Set(completedSteps);
+    for (let i = 0; i < newStep; i++) {
+      newCompletedSteps.add(i);
+    }
+    setCompletedSteps(newCompletedSteps);
+  };
+
+  const handleStepComplete = (stepIndex: number) => {
+    const newCompletedSteps = new Set(completedSteps);
+    newCompletedSteps.add(stepIndex);
+    setCompletedSteps(newCompletedSteps);
+  };
+
+  const handleConfirm = async () => {
+    if (!selectedBank || !selectedProducts.length || !formData) {
+      setError('Dados incompletos para criar a solicitação');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const currentUser = authService.getCurrentUser();
+      
+      const solicitacao: SolicitacaoCarta = {
+        banco_id: selectedBank.codigo,
+        produtos: selectedProducts,
+        cnpj_software_house: formData.cnpjSoftwareHouse,
+        cnpj_emitente: formData.cnpjEmitente,
+        razao_social: formData.razaoSocial,
+        nome_responsavel: formData.nomeResponsavel,
+        cargo_responsavel: formData.cargoResponsavel,
+        telefone: formData.telefone,
+        email: formData.email,
+        agencia: formData.agencia,
+        agencia_dv: formData.agenciaDV,
+        conta: formData.conta,
+        conta_dv: formData.contaDV,
+        convenio: formData.convenio,
+        cnab: formData.cnab,
+        nome_gerente: formData.nomeGerente,
+        telefone_gerente: formData.telefoneGerente,
+        email_gerente: formData.emailGerente,
+      };
+
+      await solicitacaoService.create(solicitacao);
+      
+      setSuccess('Solicitação criada com sucesso!');
+      
+      // Redirecionar após 2 segundos
+      setTimeout(() => {
+        navigate('/menu');
+      }, 2000);
+      
+    } catch (err: any) {
+      console.error('Erro ao criar solicitação:', err);
+      setError(err.response?.data?.message || 'Erro ao criar solicitação');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <MainLayout>
-      sidebar = {
-        <Sidebar
-          steps={steps}
-          currentStep={currentStep}
-          onStepClick={handleStepClick}
-        />
-      }
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {/* Header */}
+      <Header />
 
-      <StepWizard
-        instance={setWizard}
-        onStepChange={(stats) => setCurrentStep(stats.activeStep - 1)}
-        isLazyMount
+      {/* Conteúdo principal */}
+      <Box 
+        sx={{ 
+          flex: 1,
+          marginTop: '64px', // Altura do header
+          backgroundColor: theme.palette.background.default,
+        }}
       >
-        <Passo1BancoSelection
-          onNext={(banco) => {
-            setSelectedBank(banco);
-            wizard.nextStep();
-          }}
-        />
+        <Container maxWidth="lg" sx={{ py: 3 }}>
+          {/* Header do Wizard */}
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Typography 
+              variant={isMobile ? 'h5' : 'h4'} 
+              component="h1" 
+              gutterBottom
+              sx={{ 
+                fontWeight: 700,
+                color: theme.palette.primary.main,
+              }}
+            >
+              Geração de Carta VAN
+            </Typography>
+            
+            <Typography 
+              variant="body1" 
+              color="text.secondary"
+            >
+              Preencha os dados para criar uma nova solicitação de carta
+            </Typography>
+          </Box>
 
-        <Passo2ProdutoSelection
-          banco={selectedBank}
-          onBack={() => wizard.previousStep()}
-          onNext={(produtos) => {
-            setSelectedProducts(produtos);
-            wizard.nextStep();
-          }}
-        />
+          {/* Stepper - Desktop */}
+          {!isMobile && (
+            <Paper sx={{ mb: 4, p: 3 }}>
+              <Stepper activeStep={currentStep} alternativeLabel>
+                {steps.map((step, index) => (
+                  <Step key={index}>
+                    <StepLabel
+                      StepIconComponent={({ active, completed }) => {
+                        if (completed) {
+                          return (
+                            <Box
+                              sx={{
+                                width: 24,
+                                height: 24,
+                                borderRadius: '50%',
+                                backgroundColor: theme.palette.success.main,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'white',
+                              }}
+                            >
+                              <CheckIcon sx={{ fontSize: 16 }} />
+                            </Box>
+                          );
+                        }
+                        return (
+                          <Box
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              backgroundColor: active ? theme.palette.primary.main : theme.palette.grey[300],
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: active ? 'white' : theme.palette.text.secondary,
+                              fontWeight: active ? 'bold' : 'normal',
+                            }}
+                          >
+                            {index + 1}
+                          </Box>
+                        );
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                          {step.title}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {step.description}
+                        </Typography>
+                      </Box>
+                    </StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
+            </Paper>
+          )}
 
-        <Passo3CartaForm
-          bank={selectedBank}
-          onBack={() => wizard.previousStep()}
-          onNext={(data) => {
-            setFormData(data);
-            setPdfUrl('https://example.com/carta.pdf');
-            wizard.nextStep();
-          }}
-        />
+          {/* Mobile Stepper */}
+          {isMobile && (
+            <Box sx={{ mb: 3 }}>
+              <MobileStepper
+                variant="progress"
+                steps={steps.length}
+                position="static"
+                activeStep={currentStep}
+                sx={{
+                  backgroundColor: 'transparent',
+                  '& .MuiMobileStepper-progress': {
+                    backgroundColor: theme.palette.grey[200],
+                  },
+                  '& .MuiMobileStepper-progressBar': {
+                    backgroundColor: theme.palette.primary.main,
+                  },
+                }}
+                nextButton={
+                  <Button
+                    size="small"
+                    onClick={() => wizard?.nextStep()}
+                    disabled={currentStep === steps.length - 1}
+                  >
+                    Próximo
+                    <KeyboardArrowRight />
+                  </Button>
+                }
+                backButton={
+                  <Button
+                    size="small"
+                    onClick={() => wizard?.previousStep()}
+                    disabled={currentStep === 0}
+                  >
+                    <KeyboardArrowLeft />
+                    Anterior
+                  </Button>
+                }
+              />
+              
+              {/* Indicador de passo atual */}
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
+                  {steps[currentStep].title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {steps[currentStep].description}
+                </Typography>
+              </Box>
+            </Box>
+          )}
 
-        <Passo4CartaPreview
-          pdfUrl={pdfUrl}
-          selectedProducts={selectedProducts}
-          onBack={() => wizard.previousStep()}
-          onConfirm={() => alert('Carta enviada! (teste)')}
-        />
-      </StepWizard>
-    </MainLayout>
+          {/* Conteúdo do Wizard */}
+          <Box sx={{ 
+            backgroundColor: 'white',
+            borderRadius: 3,
+            boxShadow: theme.shadows[1],
+            overflow: 'hidden',
+          }}>
+            <StepWizard
+              instance={setWizard}
+              onStepChange={handleStepChange}
+              isLazyMount
+            >
+              <Passo1BancoSelection
+                selectedBank={selectedBank}
+                onNext={(banco) => {
+                  setSelectedBank(banco);
+                  handleStepComplete(WizardStepEnum.BankSelection);
+                  wizard.nextStep();
+                }}
+              />
+
+              <Passo2ProdutoSelection
+                banco={selectedBank}
+                selectedProducts={selectedProducts}
+                onBack={() => wizard.previousStep()}
+                onNext={(produtos) => {
+                  setSelectedProducts(produtos);
+                  handleStepComplete(WizardStepEnum.ProductSelection);
+                  wizard.nextStep();
+                }}
+              />
+
+              <Passo3CartaForm
+                bank={selectedBank}
+                selectedProducts={selectedProducts}
+                formData={formData}
+                onBack={() => wizard.previousStep()}
+                onNext={(data) => {
+                  setFormData(data);
+                  handleStepComplete(WizardStepEnum.CartaForm);
+                  wizard.nextStep();
+                }}
+              />
+
+              <Passo4CartaPreview
+                selectedProducts={selectedProducts}
+                formData={formData}
+                selectedBank={selectedBank}
+                onBack={() => wizard.previousStep()}
+                onConfirm={handleConfirm}
+                loading={loading}
+              />
+            </StepWizard>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* Snackbars para feedback */}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError('')}
+      >
+        <Alert severity="error" onClose={() => setError('')}>
+          {error}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!success}
+        autoHideDuration={4000}
+        onClose={() => setSuccess('')}
+      >
+        <Alert severity="success" onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

@@ -2,19 +2,30 @@ import React from 'react';
 import CartaPreview from '../CartaPreview';
 
 interface Passo4CartaPreviewProps {
-    pdfUrl: string;
     selectedProducts: string[];
+    formData: any;
+    selectedBank: any;
     onConfirm: () => void;
     onBack: () => void;
+    loading: boolean;
 }
   
-const Passo4CartaPreview: React.FC<Passo4CartaPreviewProps> = ({ pdfUrl, selectedProducts, onConfirm, onBack }) => (
+const Passo4CartaPreview: React.FC<Passo4CartaPreviewProps> = ({ 
+  selectedProducts, 
+  formData, 
+  selectedBank, 
+  onConfirm, 
+  onBack, 
+  loading 
+}) => (
     <div>
       <CartaPreview 
-        pdfUrl={pdfUrl} 
         produtos={selectedProducts} 
+        formData={formData}
+        selectedBank={selectedBank}
         onConfirm={onConfirm} 
-        onBack={onBack} 
+        onBack={onBack}
+        loading={loading}
       />
     </div>
 );

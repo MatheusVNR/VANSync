@@ -1,22 +1,42 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React from 'react';
+import { Container, Typography, Box, useTheme, useMediaQuery } from '@mui/material';
+import CadastroBancos from './CadastroBancos';
+import MainLayout from '../../components/MainLayout';
 
 const CadastroMain: React.FC = () => {
-    const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-    return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-          <h1 className="text-3xl font-bold mb-8">Cadastros</h1>
-          <div className="flex flex-col md:flex-row gap-6">
-            <button
-              onClick={() => navigate('/cadastros/bancos')}
-              className="bg-yellow-500 text-white px-6 py-3 rounded hover:bg-yellow-600 transition-colors"
-            >
-              Cadastro de Bancos
-            </button>
-          </div>
-        </div>
-      );
-}
+  return (
+    <MainLayout>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        {/* Header */}
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+          <Typography 
+            variant={isMobile ? 'h4' : 'h3'} 
+            component="h1" 
+            gutterBottom
+            sx={{ 
+              fontWeight: 700,
+              color: theme.palette.primary.main,
+            }}
+          >
+            Cadastros
+          </Typography>
+          
+          <Typography 
+            variant="body1" 
+            color="text.secondary"
+          >
+            Gerencie os bancos e configurações do sistema
+          </Typography>
+        </Box>
+
+        {/* Conteúdo */}
+        <CadastroBancos />
+      </Container>
+    </MainLayout>
+  );
+};
 
 export default CadastroMain;

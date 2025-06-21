@@ -1,26 +1,152 @@
 import React from 'react';
+import {
+  Container,
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  useTheme,
+  useMediaQuery,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Business as BusinessIcon,
+  Description as DescriptionIcon,
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import MainLayout from '../components/MainLayout';
+import { authService } from '../services/authService';
 
 const MainMenu: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
+  const currentUser = authService.getCurrentUser();
+
+  const menuItems = [
+    {
+      title: 'Nova Carta VAN',
+      description: 'Criar uma nova solicitação de carta VAN',
+      icon: <AddIcon sx={{ fontSize: 40 }} />,
+      color: theme.palette.primary.main,
+      onClick: () => navigate('/carta-van'),
+      showFor: ['ADMIN', 'SH'],
+    },
+    {
+      title: 'Cadastros',
+      description: 'Gerenciar bancos e configurações',
+      icon: <BusinessIcon sx={{ fontSize: 40 }} />,
+      color: theme.palette.secondary.main,
+      onClick: () => navigate('/cadastros'),
+      showFor: ['ADMIN'],
+    },
+    {
+      title: 'Solicitações',
+      description: 'Visualizar e gerenciar solicitações',
+      icon: <DescriptionIcon sx={{ fontSize: 40 }} />,
+      color: theme.palette.success.main,
+      onClick: () => navigate('/solicitacoes'),
+      showFor: ['ADMIN', 'SH'],
+    },
+  ].filter(item => item.showFor.includes(currentUser?.tipo || ''));
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      <h1 className="text-3xl font-bold mb-8">Bem-vindo ao VANSync</h1>
-      <div className="flex flex-col md:flex-row gap-6">
-        <button
-          onClick={() => navigate('/carta-van')}
-          className="bg-green-500 text-white px-6 py-3 rounded hover:bg-green-600 transition-colors"
-        >
-          Gerar Carta VAN
-        </button>
-        <button
-          onClick={() => navigate('/cadastros')}
-          className="bg-yellow-500 text-white px-6 py-3 rounded hover:bg-yellow-600 transition-colors"
-        >
-          Cadastros
-        </button>
-      </div>
-    </div>
+    <MainLayout>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        {/* Header */}
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+          <Typography 
+            variant={isMobile ? 'h4' : 'h3'} 
+            component="h1" 
+            gutterBottom
+            sx={{ 
+              fontWeight: 700,
+              color: theme.palette.primary.main,
+            }}
+          >
+            Bem-vindo ao VANSync
+          </Typography>
+          
+          <Typography 
+            variant="h6" 
+            color="text.secondary"
+            sx={{ mb: 2 }}
+          >
+            {currentUser?.nome_empresa}
+          </Typography>
+          
+          <Typography 
+            variant="body1" 
+            color="text.secondary"
+          >
+            Selecione uma opção para continuar
+          </Typography>
+        </Box>
+
+        {/* Menu Cards */}
+        <Grid container spacing={3} justifyContent="center">
+          {menuItems.map((item, index) => (
+            <Grid item xs={12} sm={6} md={4} key={index}>
+              <Card
+                sx={{
+                  height: '100%',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  border: `2px solid transparent`,
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: theme.shadows[8],
+                    borderColor: item.color,
+                  },
+                }}
+                onClick={item.onClick}
+              >
+                <CardContent
+                  sx={{
+                    textAlign: 'center',
+                    py: 4,
+                    px: 3,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: '50%',
+                      backgroundColor: item.color + '15',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 24px',
+                      color: item.color,
+                    }}
+                  >
+                    {item.icon}
+                  </Box>
+                  
+                  <Typography 
+                    variant="h6" 
+                    component="h2" 
+                    gutterBottom
+                    sx={{ fontWeight: 600 }}
+                  >
+                    {item.title}
+                  </Typography>
+                  
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                  >
+                    {item.description}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+    </MainLayout>
   );
 };
 

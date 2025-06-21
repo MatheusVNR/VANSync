@@ -1,201 +1,185 @@
-import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
+  Container,
   Card,
   CardContent,
+  Typography,
   TextField,
   Button,
-  Typography,
   Alert,
+  useTheme,
+  useMediaQuery,
   InputAdornment,
   IconButton,
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import styled from 'styled-components';
 import { authService } from '../services/authService';
-import { maskCNPJ, validateCNPJ, removeMask } from '../utils/masks';
 
-interface FormData {
-  cnpj: string;
-  token: string;
-}
-
-const Logo = styled.img`
-  width: 200px;
-  margin-bottom: 24px;
-`;
-
-const StyledCard = styled(Card)`
-  max-width: 400px;
-  width: 100%;
-  padding: 16px;
-`;
-
-const FullScreenWrapper = styled.div`
-  height: 100vh;
-  width: 100vw;
-  background-image: url('/images/background.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-function Login(): React.ReactElement {
+const Login: React.FC = () => {
+  const [cnpj, setCnpj] = useState('');
+  const [token, setToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<FormData>({ cnpj: '', token: '' });
-  const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [showToken, setShowToken] = useState<boolean>(false);
-  const [cnpjError, setCnpjError] = useState<string>('');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Verificar se usuário já está logado
-  useEffect(() => {
-    if (authService.isAuthenticated()) {
-      navigate('/menu');
-    }
-  }, [navigate]);
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = e.target;
-    let formattedValue = value;
-
-    // Aplicar máscaras
-    if (name === 'cnpj') {
-      formattedValue = maskCNPJ(value);
-      setCnpjError('');
-    }
-
-    setFormData((prev) => ({ ...prev, [name]: formattedValue }));
-    setError('');
+  const maskCNPJ = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const maskedValue = maskCNPJ(e.target.value);
+    setCnpj(maskedValue);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Validar CNPJ
-    if (!validateCNPJ(formData.cnpj)) {
-      setCnpjError('CNPJ inválido');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const response = await authService.login(removeMask(formData.cnpj), formData.token);
-      
-      // Salvar tokens no sessionStorage
-      const authData = {
-        accessToken: response.token,
-        refreshToken: response.refreshToken,
-        expiresAt: Date.now() + (response.expiresIn * 1000)
-      };
-      
-      sessionStorage.setItem('auth', JSON.stringify(authData));
-      sessionStorage.setItem('user', JSON.stringify(response.user));
-
-      // Redirecionar baseado no tipo de usuário
-      if (response.user.tipo === 'ADMIN') {
-        navigate('/menu');
-      } else {
-        navigate('/menu');
-      }
+      const cnpjLimpo = cnpj.replace(/\D/g, '');
+      await authService.login(cnpjLimpo, token);
+      navigate('/menu');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao fazer login. Verifique suas credenciais.');
+      setError(err.message || 'Erro ao fazer login');
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleTokenVisibility = () => {
-    setShowToken(!showToken);
-  };
-
   return (
-    <FullScreenWrapper>
-      <StyledCard>
-        <CardContent>
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
-          >
-            <Logo src="/images/tecno.png" alt="Tecnospeed" />
-            <Typography variant="h5" component="h1" gutterBottom>
-              Login
-            </Typography>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        width: '100vw',
+        backgroundImage: 'url(/images/background.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 4,
+      }}
+    >
+      <Container maxWidth="sm">
+        <Card 
+          sx={{ 
+            width: '100%',
+            maxWidth: 400,
+            borderRadius: 3,
+            boxShadow: theme.shadows[8],
+            mx: 'auto',
+          }}
+        >
+          <CardContent sx={{ p: isMobile ? 3 : 4 }}>
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
+              <Box
+                component="img"
+                src="/images/tecno.png"
+                alt="Tecnospeed"
+                sx={{
+                  width: 200,
+                  height: 'auto',
+                  mb: 3,
+                }}
+              />
+              
+              <Typography 
+                variant="h5" 
+                component="h1" 
+                gutterBottom
+                sx={{ 
+                  fontWeight: 600,
+                  color: theme.palette.primary.main,
+                  mb: 1
+                }}
+              >
+                Login
+              </Typography>
+            </Box>
 
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="cnpj"
-              label="CNPJ"
-              name="cnpj"
-              autoComplete="off"
-              autoFocus
-              value={formData.cnpj}
-              onChange={handleChange}
-              disabled={loading}
-              error={!!cnpjError}
-              helperText={cnpjError}
-              placeholder="00.000.000/0000-00"
-              inputProps={{
-                maxLength: 18
-              }}
-            />
+            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+              {error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                  {error}
+                </Alert>
+              )}
 
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="token"
-              label="Token"
-              type={showToken ? 'text' : 'password'}
-              id="token"
-              autoComplete="off"
-              value={formData.token}
-              onChange={handleChange}
-              disabled={loading}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle token visibility"
-                      onClick={toggleTokenVisibility}
-                      edge="end"
-                    >
-                      {showToken ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
+              <TextField
+                fullWidth
+                label="CNPJ"
+                value={cnpj}
+                onChange={handleCnpjChange}
+                margin="normal"
+                required
+                placeholder="00.000.000/0000-00"
+                inputProps={{ maxLength: 18 }}
+                sx={{ mb: 2 }}
+              />
 
-            {error && (
-              <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-                {error}
-              </Alert>
-            )}
+              <TextField
+                fullWidth
+                label="Token"
+                type={showToken ? 'text' : 'password'}
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                margin="normal"
+                required
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowToken(!showToken)}
+                        edge="end"
+                      >
+                        {showToken ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ mb: 3 }}
+              />
 
-            <Button 
-              type="submit" 
-              fullWidth 
-              variant="contained" 
-              sx={{ mt: 2 }} 
-              disabled={loading || !formData.cnpj || !formData.token}
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
-            </Button>
-          </Box>
-        </CardContent>
-      </StyledCard>
-    </FullScreenWrapper>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                size="large"
+                disabled={loading}
+                sx={{ 
+                  py: 1.5,
+                  borderRadius: 2,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                }}
+              >
+                {loading ? 'Entrando...' : 'Entrar'}
+              </Button>
+            </Box>
+
+            <Box sx={{ textAlign: 'center', mt: 4 }}>
+              <Typography variant="caption" color="text.secondary">
+                © 2025 VANSync. Todos os direitos reservados.
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
+      </Container>
+    </Box>
   );
-}
+};
 
 export default Login;

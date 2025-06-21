@@ -7,6 +7,7 @@ import CadastroBancos from './pages/cadastros/CadastroBancos';
 import CadastroMain from './pages/cadastros/CadastroMain';
 import { ThemeProvider } from '@mui/material/styles';
 import theme from './theme';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const App: React.FC = () => {
   return (
@@ -14,10 +15,26 @@ const App: React.FC = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/menu" element={<MainMenu />} />
-          <Route path="/cadastros" element={<CadastroMain/>} />
-          <Route path="/cadastros/bancos" element={<CadastroBancos />} />
-          <Route path="/carta-van" element={<WizardCartaVan />} />
+          <Route path="/menu" element={
+            <ProtectedRoute>
+              <MainMenu />
+            </ProtectedRoute>
+          } />
+          <Route path="/cadastros" element={
+            <ProtectedRoute requireAdmin>
+              <CadastroMain/>
+            </ProtectedRoute>
+          } />
+          <Route path="/cadastros/bancos" element={
+            <ProtectedRoute requireAdmin>
+              <CadastroBancos />
+            </ProtectedRoute>
+          } />
+          <Route path="/carta-van" element={
+            <ProtectedRoute>
+              <WizardCartaVan />
+            </ProtectedRoute>
+          } />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
