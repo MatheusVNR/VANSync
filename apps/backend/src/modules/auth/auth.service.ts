@@ -1,25 +1,99 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { UsuariosService } from '../usuarios/usuarios.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    private usuariosService: UsuariosService
+  ) {}
 
-  async login(email: string, password: string) {
-    if (email === 'teste@tecnospeed.com.br' && password === '123456') { // apenas para os testes
-      // Gera o token JWT
-      const payload = { username: email, sub: 1 };
-      const token = this.jwtService.sign(payload);
+  async login(cnpj: string, token: string) {
+    try {
+      const usuario = await this.usuariosService.authenticate(cnpj, token);
+      
+      // Gera o access token (curta duração)
+      const accessTokenPayload = { 
+        sub: usuario.id, 
+        cnpj: usuario.cnpj, 
+        tipo: usuario.tipo,
+        type: 'access'
+      };
+      
+      const accessToken = this.jwtService.sign(accessTokenPayload, {
+        expiresIn: '15m' // 15 minutos
+      });
+
+      // Gera o refresh token (longa duração)
+      const refreshTokenPayload = {
+        sub: usuario.id,
+        type: 'refresh'
+      };
+
+      const refreshToken = this.jwtService.sign(refreshTokenPayload, {
+        expiresIn: '7d' // 7 dias
+      });
 
       return {
-        user: email,
-        token: token,
+        user: {
+          id: usuario.id,
+          cnpj: usuario.cnpj,
+          tipo: usuario.tipo,
+          nome_empresa: usuario.nome_empresa,
+          email: usuario.email
+        },
+        token: accessToken,
+        refreshToken: refreshToken,
+        expiresIn: 900 // 15 minutos em segundos
       };
-    } else {
+    } catch (error) {
       throw new HttpException(
-        { message: 'Credenciais inválidas' },
+        { message: 'CNPJ ou Token inválidos' },
         HttpStatus.UNAUTHORIZED
       );
     }
+  }
+
+  async refresh(refreshToken: string) {
+    try {
+      // Verifica o refresh token
+      const payload = this.jwtService.verify(refreshToken);
+      
+      if (payload.type !== 'refresh') {
+        throw new HttpException('Token inválido', HttpStatus.UNAUTHORIZED);
+      }
+
+      // Busca o usuário
+      const usuario = await this.usuariosService.findOne(payload.sub);
+      
+      // Gera novo access token
+      const accessTokenPayload = { 
+        sub: usuario.id, 
+        cnpj: usuario.cnpj, 
+        tipo: usuario.tipo,
+        type: 'access'
+      };
+      
+      const accessToken = this.jwtService.sign(accessTokenPayload, {
+        expiresIn: '15m'
+      });
+
+      return {
+        token: accessToken,
+        refreshToken: refreshToken, // Mantém o mesmo refresh token
+        expiresIn: 900
+      };
+    } catch (error) {
+      throw new HttpException(
+        { message: 'Refresh token inválido' },
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+  }
+
+  async validateUser(payload: any) {
+    const usuario = await this.usuariosService.findOne(payload.sub);
+    return usuario;
   }
 }

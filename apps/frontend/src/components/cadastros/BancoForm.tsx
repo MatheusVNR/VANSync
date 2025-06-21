@@ -7,11 +7,13 @@ interface BancoFormProps {
     cnab240?: boolean;
     cnab400?: boolean;
     cnab444?: boolean;
-    produtos?: string;
+    produtos?: string[];
   };
   onSubmit: (data: any) => void;
   onCancel?: () => void;
 }
+
+const PRODUTOS_DISPONIVEIS = ['Pagamentos', 'DDA', 'Extrato', 'Boletos'];
 
 const BancoForm: React.FC<BancoFormProps> = ({ initialData, onSubmit, onCancel }) => {
   const [nome, setNome] = useState(initialData?.nome || '');
@@ -19,7 +21,15 @@ const BancoForm: React.FC<BancoFormProps> = ({ initialData, onSubmit, onCancel }
   const [cnab240, setCnab240] = useState(initialData?.cnab240 || false);
   const [cnab400, setCnab400] = useState(initialData?.cnab400 || false);
   const [cnab444, setCnab444] = useState(initialData?.cnab444 || false);
-  const [produtos, setProdutos] = useState(initialData?.produtos || '');
+  const [produtos, setProdutos] = useState<string[]>(initialData?.produtos || []);
+
+  const toggleProduto = (produto: string) => {
+    if (produtos.includes(produto)) {
+      setProdutos(produtos.filter(p => p !== produto));
+    } else {
+      setProdutos([...produtos, produto]);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,14 +58,16 @@ const BancoForm: React.FC<BancoFormProps> = ({ initialData, onSubmit, onCancel }
       </div>
       <div className="mb-4">
         <label className="block text-gray-700">Padrão VAN</label>
-        <input
-          type="text"
+        <select
           value={padraoVan}
           onChange={(e) => setPadraoVan(e.target.value)}
-          placeholder="Padrão VAN"
           className="w-full p-2 border rounded"
           required
-        />
+        >
+          <option value="">Selecione o padrão VAN</option>
+          <option value="Nexxera">Nexxera</option>
+          <option value="Finnet">Finnet</option>
+        </select>
       </div>
       <div className="mb-4 flex items-center">
         <input
@@ -86,13 +98,18 @@ const BancoForm: React.FC<BancoFormProps> = ({ initialData, onSubmit, onCancel }
       </div>
       <div className="mb-4">
         <label className="block text-gray-700">Produtos</label>
-        <input
-          type="text"
-          value={produtos}
-          onChange={(e) => setProdutos(e.target.value)}
-          placeholder="Ex: Boletos, Pagamentos"
-          className="w-full p-2 border rounded"
-        />
+        <div className="flex flex-wrap">
+          {PRODUTOS_DISPONIVEIS.map((produto) => (
+            <button
+              key={produto}
+              type="button"
+              onClick={() => toggleProduto(produto)}
+              className={`px-4 py-2 m-1 ${produtos.includes(produto) ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} rounded hover:bg-blue-500 hover:text-white transition-colors`}
+            >
+              {produto}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="flex justify-between">
         <button

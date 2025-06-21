@@ -3,6 +3,9 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { ConfigService } from '@nestjs/config';
 import { BancoModule } from 'src/modules/banco/banco.module';
 import { AppConfigModule } from 'src/modules/config/config.module';
+import { Banco } from './entities/Banco';
+import { Usuario } from './entities/Usuario';
+import { SolicitacaoCarta } from './entities/SolicitacaoCarta';
 
 @Module({
   imports: [
@@ -17,7 +20,8 @@ import { AppConfigModule } from 'src/modules/config/config.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         autoLoadModels: true,
-        synchronize: true
+        synchronize: true,
+        models: [Banco, Usuario, SolicitacaoCarta]
       })
     }),
     

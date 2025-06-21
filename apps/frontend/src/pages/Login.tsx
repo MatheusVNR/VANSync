@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent, FormEvent } from 'react';
+import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -7,15 +7,18 @@ import {
   TextField,
   Button,
   Typography,
-  Link,
   Alert,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import styled from 'styled-components';
 import { authService } from '../services/authService';
+import { maskCNPJ, validateCNPJ, removeMask } from '../utils/masks';
 
 interface FormData {
-  email: string;
-  password: string;
+  cnpj: string;
+  token: string;
 }
 
 const Logo = styled.img`
@@ -32,7 +35,7 @@ const StyledCard = styled(Card)`
 const FullScreenWrapper = styled.div`
   height: 100vh;
   width: 100vw;
-  background-image: url('images/background.png');
+  background-image: url('/images/background.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -41,16 +44,32 @@ const FullScreenWrapper = styled.div`
   justify-content: center;
 `;
 
-
 function Login(): React.ReactElement {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<FormData>({ email: '', password: '' });
+  const [formData, setFormData] = useState<FormData>({ cnpj: '', token: '' });
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [showToken, setShowToken] = useState<boolean>(false);
+  const [cnpjError, setCnpjError] = useState<string>('');
+
+  // Verificar se usuário já está logado
+  useEffect(() => {
+    if (authService.isAuthenticated()) {
+      navigate('/menu');
+    }
+  }, [navigate]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    let formattedValue = value;
+
+    // Aplicar máscaras
+    if (name === 'cnpj') {
+      formattedValue = maskCNPJ(value);
+      setCnpjError('');
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: formattedValue }));
     setError('');
   };
 
@@ -59,14 +78,41 @@ function Login(): React.ReactElement {
     setError('');
     setLoading(true);
 
+    // Validar CNPJ
+    if (!validateCNPJ(formData.cnpj)) {
+      setCnpjError('CNPJ inválido');
+      setLoading(false);
+      return;
+    }
+
     try {
-      await authService.login(formData.email, formData.password);
-      navigate('/menu');
+      const response = await authService.login(removeMask(formData.cnpj), formData.token);
+      
+      // Salvar tokens no sessionStorage
+      const authData = {
+        accessToken: response.token,
+        refreshToken: response.refreshToken,
+        expiresAt: Date.now() + (response.expiresIn * 1000)
+      };
+      
+      sessionStorage.setItem('auth', JSON.stringify(authData));
+      sessionStorage.setItem('user', JSON.stringify(response.user));
+
+      // Redirecionar baseado no tipo de usuário
+      if (response.user.tipo === 'ADMIN') {
+        navigate('/menu');
+      } else {
+        navigate('/menu');
+      }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao fazer login. Tente novamente.');
+      setError(err.response?.data?.message || 'Erro ao fazer login. Verifique suas credenciais.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleTokenVisibility = () => {
+    setShowToken(!showToken);
   };
 
   return (
@@ -87,31 +133,48 @@ function Login(): React.ReactElement {
               margin="normal"
               required
               fullWidth
-              id="email"
-              label="E-mail"
-              name="email"
-              autoComplete="email"
+              id="cnpj"
+              label="CNPJ"
+              name="cnpj"
+              autoComplete="off"
               autoFocus
-              value={formData.email}
+              value={formData.cnpj}
               onChange={handleChange}
               disabled={loading}
+              error={!!cnpjError}
+              helperText={cnpjError}
+              placeholder="00.000.000/0000-00"
+              inputProps={{
+                maxLength: 18
+              }}
             />
+
             <TextField
               margin="normal"
               required
               fullWidth
-              name="password"
-              label="Senha"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={formData.password}
+              name="token"
+              label="Token"
+              type={showToken ? 'text' : 'password'}
+              id="token"
+              autoComplete="off"
+              value={formData.token}
               onChange={handleChange}
               disabled={loading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle token visibility"
+                      onClick={toggleTokenVisibility}
+                      edge="end"
+                    >
+                      {showToken ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
-            <Link href="#" variant="body2" sx={{ alignSelf: 'flex-end', mb: 2 }}>
-              Esqueci minha senha
-            </Link> 
 
             {error && (
               <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
@@ -119,7 +182,13 @@ function Login(): React.ReactElement {
               </Alert>
             )}
 
-            <Button type="submit" fullWidth variant="contained" sx={{ mt: 2 }} disabled={loading}>
+            <Button 
+              type="submit" 
+              fullWidth 
+              variant="contained" 
+              sx={{ mt: 2 }} 
+              disabled={loading || !formData.cnpj || !formData.token}
+            >
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </Box>

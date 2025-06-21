@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { getBancos } from '../../services/bancoService';
 import styled from 'styled-components';
 import {
   Box,
@@ -48,8 +48,8 @@ const BancoSelection: React.FC<BancoSelectionProps> = ({ onNext }) => {
     const fetchBancos = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}banco`);
-        setBancos(response.data);
+        const data = await getBancos();
+        setBancos(data);
       } catch (error) {
         setError('Erro ao carregar lista de bancos');
         console.error('Erro ao buscar bancos', error);

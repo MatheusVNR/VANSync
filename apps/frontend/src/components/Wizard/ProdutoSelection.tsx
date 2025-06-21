@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 
 interface ProductSelectionProps {
-  banco: { produtos: string };
+  banco: { produtos: string[] };
   onProductsSelected: (products: string[]) => void;
   onBack: () => void;
 }
@@ -23,7 +23,13 @@ const StyledContent = styled(Box)`
 `;
 
 const ProdutoSelection: React.FC<ProductSelectionProps> = ({ banco, onProductsSelected, onBack }) => {
-  const produtosDisponiveis = banco.produtos.split(',').map((prod) => prod.trim());
+  // Tratar produtos como array JSON
+  const produtosDisponiveis = Array.isArray(banco.produtos) 
+    ? banco.produtos 
+    : typeof banco.produtos === 'string' 
+      ? JSON.parse(banco.produtos || '[]')
+      : [];
+      
   const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
 
   const toggleProduct = (product: string) => {
@@ -46,7 +52,7 @@ const ProdutoSelection: React.FC<ProductSelectionProps> = ({ banco, onProductsSe
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4">Seleção de Produtos</h2>
       <div className="flex flex-wrap gap-2">
-        {produtosDisponiveis.map((product) => (
+        {produtosDisponiveis.map((product: string) => (
           <button
             key={product}
             onClick={() => toggleProduct(product)}

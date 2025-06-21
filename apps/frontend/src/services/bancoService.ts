@@ -1,6 +1,6 @@
 import axiosInstance from '../utils/axiosInstance';
 
-const URL_CONTROLLER = "banco";
+const URL_CONTROLLER = "/banco";
 
 export const getBancos = async () => {
   const response = await axiosInstance.get(URL_CONTROLLER);

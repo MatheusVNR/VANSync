@@ -9,7 +9,8 @@ interface Banco {
   cnab240?: boolean;
   cnab400?: boolean;
   cnab444?: boolean;
-  produtos?: string;
+  produtos?: string[];
+  ativo?: boolean;
 }
 
 const CadastroBancos: React.FC = () => {
@@ -116,7 +117,7 @@ const CadastroBancos: React.FC = () => {
                   <td className="py-2 px-4">{bank.cnab240 ? 'Sim' : 'Não'}</td>
                   <td className="py-2 px-4">{bank.cnab400 ? 'Sim' : 'Não'}</td>
                   <td className="py-2 px-4">{bank.cnab444 ? 'Sim' : 'Não'}</td>
-                  <td className="py-2 px-4">{bank.produtos}</td>
+                  <td className="py-2 px-4">{bank.produtos?.join(', ')}</td>
                   <td className="py-2 px-4">
                     <button
                       onClick={() => {

@@ -7,10 +7,10 @@ async function bootstrap() {
     app.setGlobalPrefix('api');
 
     app.enableCors({
-        origin: process.env.FRONTEND_URL,
+        origin: process.env.FRONTEND_URL || 'http://localhost:5173',
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
         credentials: true,
-        allowedHeaders: 'Content-Type, Accept',
+        allowedHeaders: 'Content-Type, Accept, Authorization',
     });
 
     await app.listen(3000);
