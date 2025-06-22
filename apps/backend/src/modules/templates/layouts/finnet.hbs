@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Carta VAN Finnet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11pt;
+            color: #333;
+            line-height: 1.5;
+        }
+        p {
+            margin: 12px 0;
+        }
+        b, strong {
+            font-weight: bold;
+        }
+        .header, .subject {
+            font-weight: bold;
+        }
+        .section-title {
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            font-size: 10pt;
+        }
+        .data-field {
+            display: flex;
+            margin-bottom: 2px;
+        }
+        .data-label {
+            font-weight: bold;
+            width: 180px;
+        }
+        .checkbox-item {
+            margin-bottom: 4px;
+        }
+        .signature-block {
+            margin-top: 80px;
+            text-align: center;
+        }
+        .signature-line {
+            display: inline-block;
+            border-bottom: 1px solid #000;
+            width: 350px;
+            margin-bottom: 5px;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+    </style>
+</head>
+<body>
+    <p class="header">Ao BANCO {{uppercase banco.nome}}</p>
+    <p class="header">A/C: Gerência de Operações</p>
+    <br/>
+    <p class="subject">Assunto: Intercâmbio de Arquivos – {{uppercase dados.razaoSocial}}</p>
+    <br/>
+    <p>
+        Comunicamos que nossa empresa passou a operar os relacionamentos de EDI,
+        transferência eletrônica de arquivos, através da <strong>VAN FINNET</strong>.
+    </p>
+    <p>
+        Solicitamos que esta Instituição disponibilize o suporte necessário para viabilizar
+        esta implantação, onde as ações necessárias para esta migração serão conduzidas
+        juntamente com a FINNET.
+    </p>
+
+    <p class="section-title">Contratante</p>
+    <div class="data-field"><span class="data-label">Razão Social:</span><span>{{dados.razaoSocial}}</span></div>
+    <div class="data-field"><span class="data-label">CNPJ:</span><span>{{formatCNPJ dados.cnpjEmitente}}</span></div>
+    <div class="data-field"><span class="data-label">Agência / Conta Corrente:</span><span>{{dados.agencia}} / {{dados.conta}}-{{dados.contaDV}}</span></div>
+    <div class="data-field"><span class="data-label">Convênio:</span><span>{{dados.convenio}}</span></div>
+
+    <p class="section-title">VAN Contratada</p>
+    <div class="data-field"><span class="data-label">Razão Social:</span><span>FINNET S/A Tecnologia</span></div>
+    <div class="data-field"><span class="data-label">CNPJ:</span><span>05.607.266/0001-10</span></div>
+
+    <p class="section-title">Produtos Financeiros</p>
+    <div class="checkbox-item">{{check produto 'Cobranca'}} Cobrança</div>
+    <div class="checkbox-item">{{check produto 'Pagamento de Fornecedores'}} Pagamento de Fornecedores</div>
+    <div class="checkbox-item">{{check produto 'Pagamento de Tributos'}} Pagamento de Tributos</div>
+    <div class="checkbox-item">{{check produto 'Pagamento de Salários'}} Pagamento de Salários</div>
+    <div class="checkbox-item">{{check produto 'Extrato'}} Extrato</div>
+    <div class="checkbox-item">{{check produto 'Código de Barras / Arrecadação'}} Código de Barras / Arrecadação</div>
+    <div class="checkbox-item">{{check produto 'Débito Direto Autorizado'}} Débito Direto Autorizado</div>
+    
+    <p class="section-title">Ambiente</p>
+    <div class="checkbox-item">(X) Arquivo em produção</div>
+
+    <p class="section-title">CNAB</p>
+    <div class="checkbox-item">{{check cnab '240'}} 240</div>
+    <div class="checkbox-item">{{check cnab '400'}} 400</div>
+
+    <div class="page-break"></div>
+
+    <p>Os custos serão assumidos 100% pela Empresa (alterar para 100% Banco se assim for negociado entre Empresa e Banco).</p>
+    <p>Qualquer dúvida contatar:</p>
+    
+    <p class="section-title">Contato da Empresa</p>
+    <div class="data-field"><span class="data-label">Nome:</span><span>{{dados.nomeResponsavel}}</span></div>
+    <div class="data-field"><span class="data-label">E-mail:</span><span>{{dados.email}}</span></div>
+    <div class="data-field"><span class="data-label">Telefone:</span><span>{{formatPhone dados.telefone}}</span></div>
+
+    <p class="section-title">Contato da VAN FINNET</p>
+    <div class="data-field"><span class="data-label">Nome:</span><span>Bianca e João</span></div>
+    <div class="data-field"><span class="data-label">E-mail:</span><span>pis.posvenda@finnet.com.br</span></div>
+    <div class="data-field"><span class="data-label">Telefone:</span><span>(11) 94457-8493 / (11) 99189-2213</span></div>
+
+    <p class="section-title">Contato do responsável técnico</p>
+    <div class="data-field"><span class="data-label">Nome:</span><span>Gabriel Teixeira</span></div>
+    <div class="data-field"><span class="data-label">E-mail:</span><span>gabriel.teixeira@tecnospeed.com.br</span></div>
+
+    <p class="section-title">Contato do gerente de conta</p>
+    <div class="data-field"><span class="data-label">Nome:</span><span>{{dados.nomeGerente}}</span></div>
+    <div class="data-field"><span class="data-label">E-mail:</span><span>{{dados.emailGerente}}</span></div>
+    <div class="data-field"><span class="data-label">Telefone:</span><span>{{formatPhone dados.telefoneGerente}}</span></div>
+    
+    <br/><br/>
+    <p>Colocamo-nos à disposição para quaisquer esclarecimentos adicionais.</p>
+    <br/>
+    <p>Atenciosamente,</p>
+
+    <div class="signature-block">
+        <div class="signature-line"></div>
+        <strong>Assinatura do Responsável pela empresa</strong>
+    </div>
+</body>
+</html> 

@@ -6,11 +6,17 @@ import { SolicitacaoCarta } from '../../database/entities/SolicitacaoCarta';
 import { Usuario } from '../../database/entities/Usuario';
 import { Banco } from '../../database/entities/Banco';
 import { UsuariosModule } from '../usuarios/usuarios.module';
+import { PdfModule } from '../pdf/pdf.module';
+import { TemplatesModule } from '../templates/templates.module';
+import { RedisModule } from '../redis/redis.module';
 
 @Module({
   imports: [
     SequelizeModule.forFeature([SolicitacaoCarta, Usuario, Banco]),
-    UsuariosModule
+    UsuariosModule,
+    PdfModule,
+    TemplatesModule,
+    RedisModule,
   ],
   controllers: [SolicitacoesController],
   providers: [SolicitacoesService],

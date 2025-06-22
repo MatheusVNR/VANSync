@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Res, HttpStatus } from '@nestjs/common';
+import { Response } from 'express';
 import { SolicitacoesService } from './solicitacoes.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -29,6 +30,50 @@ export class SolicitacoesController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.solicitacoesService.findOne(+id);
+  }
+
+  @Get(':id/pdf')
+  async generatePdf(@Param('id') id: string, @Res() res: Response) {
+    try {
+      const pdfBuffer = await this.solicitacoesService.generatePdf(+id);
+      
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="carta-van-${id}.pdf"`,
+        'Content-Length': pdfBuffer.length,
+      });
+      
+      res.send(pdfBuffer);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        message: 'Erro ao gerar PDF',
+        error: error.message,
+      });
+    }
+  }
+
+  @Get(':id/pdf/base64')
+  async generatePdfBase64(@Param('id') id: string) {
+    return {
+      base64: await this.solicitacoesService.generatePdfBase64(+id),
+    };
+  }
+
+  @Post(':id/send')
+  async sendPdfToClient(@Param('id') id: string) {
+    await this.solicitacoesService.sendPdfToClient(+id);
+    return {
+      message: 'PDF enviado com sucesso',
+    };
+  }
+
+  @Post(':id/clear-cache')
+  @Roles(TipoUsuario.ADMIN)
+  async clearPdfCache(@Param('id') id: string) {
+    await this.solicitacoesService.clearPdfCache(+id);
+    return {
+      message: 'Cache do PDF limpo com sucesso',
+    };
   }
 
   @Patch(':id')

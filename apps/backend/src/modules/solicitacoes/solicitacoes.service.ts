@@ -4,6 +4,9 @@ import { SolicitacaoCarta, StatusSolicitacao } from '../../database/entities/Sol
 import { Usuario } from '../../database/entities/Usuario';
 import { Banco } from '../../database/entities/Banco';
 import { UsuariosService } from '../usuarios/usuarios.service';
+import { PdfService } from '../pdf/pdf.service';
+import { TemplatesService } from '../templates/templates.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class SolicitacoesService {
@@ -15,6 +18,9 @@ export class SolicitacoesService {
     @InjectModel(Banco)
     private bancoModel: typeof Banco,
     private usuariosService: UsuariosService,
+    private pdfService: PdfService,
+    private templatesService: TemplatesService,
+    private redisService: RedisService,
   ) {}
 
   async create(createSolicitacaoDto: any): Promise<SolicitacaoCarta> {
@@ -170,5 +176,44 @@ export class SolicitacoesService {
       em_aberto: emAberto,
       finalizadas
     };
+  }
+
+  // Novos métodos para PDF e envio
+  async generatePdf(solicitacaoId: number): Promise<Buffer> {
+    const solicitacao = await this.findOne(solicitacaoId);
+    const usuario = await this.usuarioModel.findByPk(solicitacao.usuario_id);
+    const banco = await this.bancoModel.findByPk(solicitacao.banco_id);
+
+    const data = {
+      ...solicitacao.toJSON(),
+      usuario,
+      banco,
+    };
+
+    return this.pdfService.generatePdf(solicitacaoId, data);
+  }
+
+  async generatePdfBase64(solicitacaoId: number): Promise<string> {
+    const solicitacao = await this.findOne(solicitacaoId);
+    const usuario = await this.usuarioModel.findByPk(solicitacao.usuario_id);
+    const banco = await this.bancoModel.findByPk(solicitacao.banco_id);
+
+    const data = {
+      ...solicitacao.toJSON(),
+      usuario,
+      banco,
+    };
+
+    return this.pdfService.generatePdfBase64(solicitacaoId, data);
+  }
+
+  async sendPdfToClient(solicitacaoId: number): Promise<void> {
+    // TODO: Implementar envio de email com PDF anexado
+    // Por enquanto, apenas gera o PDF
+    await this.generatePdf(solicitacaoId);
+  }
+
+  async clearPdfCache(solicitacaoId?: number): Promise<void> {
+    await this.pdfService.clearPdfCache(solicitacaoId);
   }
 } 

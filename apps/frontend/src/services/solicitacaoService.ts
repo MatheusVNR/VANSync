@@ -1,7 +1,6 @@
 import axiosInstance from '../utils/axiosInstance';
 
 export interface SolicitacaoCarta {
-  id?: number;
   banco_id: number;
   produtos: string[];
   cnpj_software_house: string;
@@ -12,7 +11,7 @@ export interface SolicitacaoCarta {
   telefone: string;
   email: string;
   agencia: string;
-  agencia_dv?: string;
+  agencia_dv: string;
   conta: string;
   conta_dv: string;
   convenio: string;
@@ -20,57 +19,101 @@ export interface SolicitacaoCarta {
   nome_gerente: string;
   telefone_gerente: string;
   email_gerente: string;
-  status?: string;
-  observacoes?: string;
-  created_at?: string;
-  updated_at?: string;
+}
+
+export interface CartaPDF {
+  produto: string;
+  pdf_url: string;
+  email_enviado: boolean;
+  zapier_integrado: boolean;
+}
+
+export interface SolicitacaoResponse {
+  id: number;
+  status: string;
+  cartas: CartaPDF[];
+  created_at: string;
 }
 
 export interface DashboardStats {
-  total: number;
-  em_aberto: number;
-  finalizadas: number;
+  total_solicitacoes: number;
+  solicitacoes_pendentes: number;
+  solicitacoes_aprovadas: number;
+  solicitacoes_rejeitadas: number;
 }
 
-export const solicitacaoService = {
-  // Criar nova solicitação
-  create: async (solicitacao: SolicitacaoCarta): Promise<SolicitacaoCarta> => {
-    const response = await axiosInstance.post('/solicitacoes', solicitacao);
-    return response.data;
-  },
+class SolicitacaoService {
+  async create(solicitacao: SolicitacaoCarta): Promise<SolicitacaoResponse> {
+    try {
+      const response = await axiosInstance.post('/solicitacoes', solicitacao);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao criar solicitação');
+    }
+  }
 
-  // Buscar todas as solicitações
-  findAll: async (query?: { cnpj?: string; status?: string; banco_id?: number }): Promise<SolicitacaoCarta[]> => {
-    const response = await axiosInstance.get('/solicitacoes', { params: query });
-    return response.data;
-  },
+  async getAll(): Promise<SolicitacaoResponse[]> {
+    try {
+      const response = await axiosInstance.get('/solicitacoes');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao buscar solicitações');
+    }
+  }
 
-  // Buscar solicitação por ID
-  findOne: async (id: number): Promise<SolicitacaoCarta> => {
-    const response = await axiosInstance.get(`/solicitacoes/${id}`);
-    return response.data;
-  },
+  async getById(id: number): Promise<SolicitacaoResponse> {
+    try {
+      const response = await axiosInstance.get(`/solicitacoes/${id}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao buscar solicitação');
+    }
+  }
 
-  // Atualizar solicitação
-  update: async (id: number, solicitacao: Partial<SolicitacaoCarta>): Promise<SolicitacaoCarta> => {
-    const response = await axiosInstance.patch(`/solicitacoes/${id}`, solicitacao);
-    return response.data;
-  },
+  async generateCartasPDF(solicitacao: SolicitacaoCarta): Promise<CartaPDF[]> {
+    try {
+      const response = await axiosInstance.post('/solicitacoes/generate-pdfs', solicitacao);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao gerar PDFs das cartas');
+    }
+  }
 
-  // Atualizar status da solicitação
-  updateStatus: async (id: number, status: string, observacoes?: string): Promise<SolicitacaoCarta> => {
-    const response = await axiosInstance.patch(`/solicitacoes/${id}/status`, { status, observacoes });
-    return response.data;
-  },
+  async sendCartasEmail(solicitacaoId: number): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await axiosInstance.post(`/solicitacoes/${solicitacaoId}/send-emails`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao enviar e-mails das cartas');
+    }
+  }
 
-  // Remover solicitação - provavelmente não vai ser usado, mas deixei aqui para referencia
-  remove: async (id: number): Promise<void> => {
-    await axiosInstance.delete(`/solicitacoes/${id}`);
-  },
+  async integrateZapier(solicitacaoId: number): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await axiosInstance.post(`/solicitacoes/${solicitacaoId}/zapier-integration`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao integrar com Zapier');
+    }
+  }
 
-  // Buscar estatísticas do dashboard
-  getDashboardStats: async (cnpj?: string): Promise<DashboardStats> => {
-    const response = await axiosInstance.get('/solicitacoes/dashboard', { params: { cnpj } });
-    return response.data;
-  },
-}; 
+  async getCartaTemplate(bancoId: number, produto: string): Promise<string> {
+    try {
+      const response = await axiosInstance.get(`/bancos/${bancoId}/carta-template/${produto}`);
+      return response.data.template;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao buscar template da carta');
+    }
+  }
+
+  async getDashboardStats(): Promise<DashboardStats> {
+    try {
+      const response = await axiosInstance.get('/solicitacoes/dashboard-stats');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao buscar estatísticas');
+    }
+  }
+}
+
+export const solicitacaoService = new SolicitacaoService(); 

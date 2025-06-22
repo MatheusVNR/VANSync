@@ -126,18 +126,25 @@ const WizardCartaVan: React.FC = () => {
         email_gerente: formData.emailGerente,
       };
 
-      await solicitacaoService.create(solicitacao);
+      // Criar solicitação e gerar PDFs
+      const response = await solicitacaoService.create(solicitacao);
       
-      setSuccess('Solicitação criada com sucesso!');
+      // Enviar emails das cartas
+      await solicitacaoService.sendCartasEmail(response.id);
       
-      // Redirecionar após 2 segundos
+      // Integrar com Zapier
+      await solicitacaoService.integrateZapier(response.id);
+      
+      setSuccess(`Solicitação criada com sucesso! ${selectedProducts.length} carta${selectedProducts.length > 1 ? 's' : ''} enviadas por e-mail e integradas via Zapier.`);
+      
+      // Redirecionar após 3 segundos
       setTimeout(() => {
         navigate('/menu');
-      }, 2000);
+      }, 3000);
       
     } catch (err: any) {
       console.error('Erro ao criar solicitação:', err);
-      setError(err.response?.data?.message || 'Erro ao criar solicitação');
+      setError(err.message || 'Erro ao criar solicitação');
     } finally {
       setLoading(false);
     }

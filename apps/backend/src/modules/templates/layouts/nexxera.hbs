@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Carta VAN Nexxera</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            color: #333;
+            line-height: 1.4;
+        }
+        .container {
+            width: 100%;
+            margin: 0 auto;
+        }
+        .header-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 12pt;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            border: 1px solid #000;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .info-box-red {
+            border: 1px solid #c00;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .top-right-box {
+            float: right;
+            width: 180px;
+            text-align: center;
+            border: 1px solid #000;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .clear { clear: both; }
+        .section-title {
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #000;
+            padding: 6px;
+            text-align: left;
+            font-size: 9pt;
+        }
+        .data-table th {
+            background-color: #eee;
+            font-weight: bold;
+        }
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0 20px;
+        }
+        .data-field {
+            display: flex;
+            margin-bottom: 2px;
+        }
+        .data-label {
+            font-weight: bold;
+            width: 150px;
+        }
+        .checkbox-item {
+            margin-right: 15px;
+            display: inline-block;
+        }
+        p {
+            margin: 10px 0;
+            text-align: justify;
+        }
+        .signature {
+            margin-top: 40px;
+        }
+        .highlight {
+            background-color: #ffff00;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header-title">CARTA DE ABERTURA DE RELACIONAMENTO</div>
+    
+    <div class="top-right-box">
+        <b>Local e data:</b><br/>
+        {{dados.cidade}}, {{formatDate}}
+    </div>
+    <div class="clear"></div>
+
+    <div class="info-box">
+        <p style="text-align: center; margin: 20px 0;">Logo/Carimbo</p>
+        <p style="text-align: center; margin-bottom: 20px;">{{uppercase dados.razaoSocial}}</p>
+        <div style="background-color: #eee; text-align:center; padding: 5px; border-top: 1px solid #000;">
+            <b>:: CARTA CIRCULAR</b>
+        </div>
+    </div>
+
+    <div class="section-title">Dados do Banco:</div>
+    <div class="data-grid">
+        <div><span class="data-label">Banco:</span><span>{{banco.nome}}</span></div>
+        <div><span class="data-label">Agência:</span><span>{{dados.agencia}}</span></div>
+        <div><span class="data-label">Cidade:</span><span>{{dados.cidade}}</span></div>
+        <div><span class="data-label">UF:</span><span>{{dados.estado}}</span></div>
+    </div>
+
+    <div class="section-title">Dados do gerente responsável pela abertura (OBRIGATÓRIO):</div>
+    <div class="data-grid">
+        <div><span class="data-label">Nome:</span><span>{{dados.nomeGerente}}</span></div>
+        <div><span class="data-label">Telefone/Celular:</span><span>{{formatPhone dados.telefoneGerente}}</span></div>
+    </div>
+    <div class="data-field"><span class="data-label">Email:</span><span>{{dados.emailGerente}}</span></div>
+    <div>
+        <span class="data-label">Preferência por contato:</span>
+        <span class="checkbox-item">{{check dados.preferenciaContato 'Email'}} Email</span>
+        <span class="checkbox-item">{{check dados.preferenciaContato 'Telefone'}} Telefone</span>
+        <span class="checkbox-item">{{check dados.preferenciaContato 'Whatsapp'}} Whatsapp</span>
+        <span class="checkbox-item">{{check dados.preferenciaContato 'Outro'}} Outro: _________</span>
+    </div>
+    <p><small>*** Este contato será utilizado apenas caso haja problemas ou atrasos no processo de liberação do relacionamento</small></p>
+
+    <p><b>Assunto: Solicitação de Alteração do Processo EDI – Troca Eletrônica de Dados</b></p>
+    <p>Prezados Senhores,</p>
+    <p>
+        Avaliando os processos eletrônicos existentes na <b>{{uppercase dados.razaoSocial}}</b>, percebemos a necessidade de alterarmos a forma
+        de entrega e recebimento de arquivos eletrônicos com bancos, implantando em nossa empresa maior padronização e controle nestes
+        processos.
+    </p>
+    <p>
+        Em função de atender estas necessidades de integração, informamos que a VAN <b>NEXXERA TECNOLOGIA E SERVIÇOS S/A</b>
+        ficará responsável pelo tráfego de dados entre a <b>{{uppercase dados.razaoSocial}}</b> e o Banco, para os arquivos da tabela abaixo, em substituição
+        ao atual meio de comunicação.
+    </p>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Serviço no Banco:</th>
+                <th>Conta/DV:</th>
+                <th>Convênio:</th>
+                <th>Layout Cliente:</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{#each produtos}}
+            <tr>
+                <td>{{this}}</td>
+                <td>{{../dados.conta}}-{{../dados.contaDV}}</td>
+                <td>{{../dados.convenio}}</td>
+                <td>{{../cnab}}</td>
+            </tr>
+        {{/each}}
+        </tbody>
+    </table>
+
+    <p>
+        Este processo faz parte de um novo projeto que está sendo implementado na área financeira de nossa empresa, e por essa
+        razão necessitamos da liberação dos arquivos solicitados, em <span class="highlight">Ambiente de Produção</span>.
+    </p>
+    <p>
+        Desta forma, solicitamos que o Banco disponibilize à Nexxera os arquivos com periodicidade diária, através do meio de
+        comunicação já utilizado com a Nexxera.
+    </p>
+    <p>
+        Informamos que os custos de Troca Eletrônica de Informações - EDI será <b>100% empresa</b>.
+    </p>
+    <p>
+        Os contatos na Nexxera serão através da equipe de Relacionamentos no e-mail <b>implantacao@nexxera.com</b>. Sendo assim,
+        solicitamos seu empenho em liberar este acesso com a maior brevidade possível, sob pena de impactar o cronograma do projeto.
+    </p>
+    <p>Contamos com sua habitual atenção e desde já agradecemos.</p>
+    <p class="signature">Atenciosamente,</p>
+
+    <div class="info-box-red">
+        <div class="data-grid">
+            <div><span class="data-label">RAZÃO SOCIAL:</span><span>{{dados.razaoSocial}}</span></div>
+            <div><span class="data-label">CNPJ:</span><span>{{formatCNPJ dados.cnpjEmitente}}</span></div>
+            <div><span class="data-label">NOME:</span><span>{{dados.nomeResponsavel}}</span></div>
+            <div><span class="data-label">CARGO:</span><span>{{dados.cargoResponsavel}}</span></div>
+            <div><span class="data-label">FONE:</span><span>{{formatPhone dados.telefone}}</span></div>
+            <div><span class="data-label">E-MAIL:</span><span>{{dados.email}}</span></div>
+            <div><span class="data-label">RESPONSÁVEL TÉCNICO:</span><span>{{dados.nomeResponsavelTecnico}}</span></div>
+            <div><span class="data-label">E-MAIL RESP. TEC:</span><span>{{dados.emailResponsavelTecnico}}</span></div>
+        </div>
+    </div>
+</div>
+</body>
+</html> 
