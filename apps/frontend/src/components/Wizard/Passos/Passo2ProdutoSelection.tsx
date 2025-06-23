@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -20,41 +20,30 @@ import {
 } from '@mui/icons-material';
 
 interface Passo2ProdutoSelectionProps {
-  banco: any;
-  selectedProducts?: string[];
+  bank: any;
+  selectedProducts: string[];
+  onProductToggle: (produto: string) => void;
   onBack: () => void;
-  onNext: (produtos: string[]) => void;
+  onNext: () => void;
 }
 
 const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
-  banco,
-  selectedProducts = [],
+  bank,
+  selectedProducts,
+  onProductToggle,
   onBack,
   onNext,
 }) => {
-  const [selectedProdutos, setSelectedProdutos] = useState<string[]>(selectedProducts);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  useEffect(() => {
-    setSelectedProdutos(selectedProducts);
-  }, [selectedProducts]);
-
-  const handleProdutoToggle = (produto: string) => {
-    setSelectedProdutos(prev => 
-      prev.includes(produto)
-        ? prev.filter(p => p !== produto)
-        : [...prev, produto]
-    );
-  };
-
   const handleNext = () => {
-    if (selectedProdutos.length > 0) {
-      onNext(selectedProdutos);
+    if (selectedProducts.length > 0) {
+      onNext();
     }
   };
 
-  if (!banco) {
+  if (!bank) {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
@@ -65,10 +54,10 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
   }
 
   // Tratar produtos como array JSON
-  const produtos = Array.isArray(banco.produtos) 
-    ? banco.produtos 
-    : typeof banco.produtos === 'string' 
-      ? JSON.parse(banco.produtos || '[]')
+  const produtos = Array.isArray(bank.produtos) 
+    ? bank.produtos 
+    : typeof bank.produtos === 'string' 
+      ? JSON.parse(bank.produtos || '[]')
       : [];
 
   return (
@@ -81,10 +70,10 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
       <Card sx={{ mb: 3, backgroundColor: theme.palette.grey[50] }}>
         <CardContent>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            Banco: {banco.nome}
+            Banco: {bank.nome}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Código: {banco.codigo.toString().padStart(3, '0')} • Padrão: {banco.padrao_van}
+            Código: {bank.codigo.toString().padStart(3, '0')} • Padrão: {bank.padrao_van}
           </Typography>
         </CardContent>
       </Card>
@@ -111,10 +100,10 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
                 sx={{
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
-                  border: selectedProdutos.includes(produto)
+                  border: selectedProducts.includes(produto)
                     ? `2px solid ${theme.palette.primary.main}`
                     : '2px solid transparent',
-                  backgroundColor: selectedProdutos.includes(produto)
+                  backgroundColor: selectedProducts.includes(produto)
                     ? theme.palette.primary.light + '10'
                     : 'white',
                   '&:hover': {
@@ -126,7 +115,7 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
                   display: 'flex',
                   flexDirection: 'column',
                 }}
-                onClick={() => handleProdutoToggle(produto)}
+                onClick={() => onProductToggle(produto)}
               >
                 <CardContent sx={{ 
                   p: 2, 
@@ -140,7 +129,7 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
                     width: 48, 
                     height: 48, 
                     borderRadius: '50%',
-                    backgroundColor: selectedProdutos.includes(produto)
+                    backgroundColor: selectedProducts.includes(produto)
                       ? theme.palette.primary.main
                       : theme.palette.grey[200],
                     display: 'flex',
@@ -152,7 +141,7 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
                     <ProductIcon 
                       sx={{ 
                         fontSize: 24,
-                        color: selectedProdutos.includes(produto)
+                        color: selectedProducts.includes(produto)
                           ? 'white'
                           : theme.palette.grey[600],
                       }} 
@@ -164,7 +153,7 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
                     sx={{ 
                       fontWeight: 600,
                       mb: 0.5,
-                      color: selectedProdutos.includes(produto)
+                      color: selectedProducts.includes(produto)
                         ? theme.palette.primary.main
                         : theme.palette.text.primary,
                     }}
@@ -191,24 +180,24 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
       )}
 
       {/* Produtos Selecionados - Movido para baixo */}
-      {selectedProdutos.length > 0 && (
+      {selectedProducts.length > 0 && (
         <Card sx={{ mb: 4, border: `2px solid ${theme.palette.success.main}` }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <CheckIcon sx={{ color: theme.palette.success.main, mr: 1 }} />
               <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
-                Produtos Selecionados ({selectedProdutos.length})
+                Produtos Selecionados ({selectedProducts.length})
               </Typography>
             </Box>
             
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {selectedProdutos.map((produto) => (
+              {selectedProducts.map((produto) => (
                 <Chip
                   key={produto}
                   label={produto}
                   color="success"
                   variant="outlined"
-                  onDelete={() => handleProdutoToggle(produto)}
+                  onDelete={() => onProductToggle(produto)}
                 />
               ))}
             </Box>
@@ -241,7 +230,7 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
         <Button
           variant="contained"
           onClick={handleNext}
-          disabled={selectedProdutos.length === 0}
+          disabled={selectedProducts.length === 0}
           sx={{
             px: 4,
             py: 1.5,
@@ -257,7 +246,7 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
             },
           }}
         >
-          Próximo ({selectedProdutos.length} selecionado{selectedProdutos.length !== 1 ? 's' : ''})
+          Próximo ({selectedProducts.length} selecionado{selectedProducts.length !== 1 ? 's' : ''})
         </Button>
       </Box>
     </Box>

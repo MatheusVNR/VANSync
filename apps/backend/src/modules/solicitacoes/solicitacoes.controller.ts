@@ -96,4 +96,154 @@ export class SolicitacoesController {
   remove(@Param('id') id: string) {
     return this.solicitacoesService.remove(+id);
   }
+
+  @Post('preview-pdf')
+  async generatePreviewPdf(@Body() previewData: any) {
+    try {
+      console.log('🔄 Iniciando geração de preview PDF');
+      console.log('📋 Dados recebidos:', JSON.stringify(previewData, null, 2));
+      
+      const { banco_id, produtos, formData, fornecedor_van } = previewData;
+      
+      console.log(`🏦 Banco ID: ${banco_id}`);
+      console.log(`📦 Produtos: ${produtos.join(', ')}`);
+      console.log(`🔧 Fornecedor VAN: ${fornecedor_van}`);
+      
+      const pdfs = await Promise.all(
+        produtos.map(async (produto: string, index: number) => {
+          console.log(`📄 Gerando PDF ${index + 1}/${produtos.length} para produto: ${produto}`);
+          
+          try {
+            const pdfBase64 = await this.solicitacoesService.generatePreviewPdf({
+              banco_id,
+              produto,
+              formData,
+              fornecedor_van
+            });
+            
+            console.log(`✅ PDF ${index + 1} gerado com sucesso (${pdfBase64.length} caracteres base64)`);
+            
+            return {
+              produto,
+              pdfBase64,
+              titulo: `Carta de Solicitação - ${produto}`
+            };
+          } catch (error) {
+            console.error(`❌ Erro ao gerar PDF ${index + 1} para ${produto}:`, error.message);
+            throw error;
+          }
+        })
+      );
+      
+      console.log(`🎉 Todos os ${pdfs.length} PDFs gerados com sucesso`);
+      
+      return {
+        success: true,
+        pdfs
+      };
+    } catch (error) {
+      console.error('❌ Erro geral na geração de preview PDF:', error.message);
+      console.error('Stack trace:', error.stack);
+      
+      return {
+        success: false,
+        message: error.message,
+        error: error
+      };
+    }
+  }
+
+  @Post(':id/send-emails')
+  async sendCartasEmail(@Param('id') id: string) {
+    try {
+      const resultado = await this.solicitacoesService.sendCartasEmail(+id);
+      return {
+        success: resultado.success,
+        message: resultado.message,
+        emailsEnviados: resultado.emailsEnviados
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+        emailsEnviados: 0
+      };
+    }
+  }
+
+  @Post(':id/zapier-integration')
+  async integrateZapier(@Param('id') id: string) {
+    try {
+      const resultado = await this.solicitacoesService.integrateZapier(+id);
+      return {
+        success: resultado.success,
+        message: resultado.message,
+        integracoesEnviadas: resultado.integracoesEnviadas
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+        integracoesEnviadas: 0
+      };
+    }
+  }
+
+  @Post(':id/finalizar')
+  async finalizarSolicitacao(@Param('id') id: string) {
+    try {
+      const solicitacao = await this.solicitacoesService.finalizarSolicitacao(+id);
+      return {
+        success: true,
+        message: 'Solicitação finalizada com sucesso',
+        solicitacao
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message
+      };
+    }
+  }
+
+  @Post(':id/processar-completo')
+  async processarCompleto(@Param('id') id: string) {
+    try {
+      console.log(`🔄 Iniciando processamento completo da solicitação ${id}`);
+      
+      // 1. Enviar emails
+      console.log(`📧 Passo 1: Enviando emails...`);
+      const resultadoEmails = await this.solicitacoesService.sendCartasEmail(+id);
+      
+      // 2. Integrar com Zapier
+      console.log(`🔗 Passo 2: Integrando com Zapier...`);
+      const resultadoZapier = await this.solicitacoesService.integrateZapier(+id);
+      
+      // 3. Finalizar solicitação
+      console.log(`🏁 Passo 3: Finalizando solicitação...`);
+      const solicitacao = await this.solicitacoesService.finalizarSolicitacao(+id);
+      
+      console.log(`✅ Processamento completo finalizado para solicitação ${id}`);
+      
+      return {
+        success: true,
+        message: 'Processamento completo realizado com sucesso',
+        resultados: {
+          emails: resultadoEmails,
+          zapier: resultadoZapier,
+          finalizacao: {
+            success: true,
+            message: 'Solicitação finalizada'
+          }
+        },
+        solicitacao
+      };
+    } catch (error) {
+      console.error(`❌ Erro no processamento completo da solicitação ${id}:`, error.message);
+      return {
+        success: false,
+        message: error.message
+      };
+    }
+  }
 } 

@@ -21,6 +21,184 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
+# VANSync Backend
+
+Sistema de gerenciamento de cartas VAN com geração de PDF e integração com Zapier.
+
+## Configuração
+
+### 1. Variáveis de Ambiente
+
+Copie o arquivo `env.example` para `.env` e configure as variáveis:
+
+```bash
+cp env.example .env
+```
+
+#### Configurações Obrigatórias:
+
+**Database:**
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=sua_senha
+DB_NAME=vansync
+```
+
+**Redis:**
+```env
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+```
+
+**JWT:**
+```env
+JWT_SECRET=sua-chave-secreta-jwt
+```
+
+#### Configurações Opcionais:
+
+**Email (para envio de PDFs):**
+```env
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=seu-email@gmail.com
+EMAIL_PASS=sua-senha-app
+```
+
+**Zapier:**
+```env
+ZAPIER_WEBHOOK_URL=https://hooks.zapier.com/hooks/catch/seu-webhook
+```
+
+### 2. Instalação do Redis
+
+#### Windows (Recomendado - Docker):
+```bash
+docker run -d -p 6379:6379 redis:alpine
+```
+
+#### Windows (WSL):
+```bash
+wsl --install
+# Depois instalar Redis no WSL
+sudo apt update
+sudo apt install redis-server
+sudo systemctl start redis-server
+```
+
+#### Windows (Redis Desktop):
+- Baixe o Redis Desktop Manager ou RedisInsight
+- Configure para conectar em localhost:6379
+
+### 3. Instalação das Dependências
+
+```bash
+npm install
+```
+
+### 4. Execução
+
+```bash
+# Desenvolvimento
+npm run start:dev
+
+# Produção
+npm run build
+npm run start:prod
+```
+
+## Funcionalidades
+
+### Geração de PDF
+- Templates Handlebars para cartas VAN
+- Cache Redis para templates e PDFs
+- Geração via Puppeteer
+- Endpoints:
+  - `GET /solicitacoes/:id/pdf` - Download do PDF
+  - `GET /solicitacoes/:id/pdf/base64` - PDF em base64
+  - `POST /solicitacoes/:id/send` - Enviar PDF por email
+
+### Cache Redis
+- Templates compilados (TTL: 2 horas)
+- PDFs gerados (TTL: 1 hora)
+- Rate limiting para geração de PDFs
+
+### Integração Zapier
+- Envio de PDFs em base64
+- Criação de tickets automáticos
+- Webhooks configuráveis
+
+## Estrutura de Módulos
+
+```
+src/
+├── modules/
+│   ├── auth/           # Autenticação JWT
+│   ├── banco/          # Gestão de bancos
+│   ├── config/         # Configurações
+│   ├── pdf/            # Geração de PDFs
+│   ├── redis/          # Cache Redis
+│   ├── solicitacoes/   # Gestão de solicitações
+│   ├── templates/      # Templates Handlebars
+│   ├── usuarios/       # Gestão de usuários
+│   └── zapier/         # Integração Zapier
+└── database/
+    └── entities/       # Modelos do banco
+```
+
+## API Endpoints
+
+### Autenticação
+- `POST /auth/login` - Login
+- `POST /auth/register` - Registro
+
+### Solicitações
+- `GET /solicitacoes` - Listar solicitações
+- `POST /solicitacoes` - Criar solicitação
+- `GET /solicitacoes/:id` - Buscar solicitação
+- `GET /solicitacoes/:id/pdf` - Gerar PDF
+- `POST /solicitacoes/:id/send` - Enviar PDF
+
+### Bancos
+- `GET /banco` - Listar bancos
+- `POST /banco` - Criar banco
+
+### Usuários
+- `GET /usuarios` - Listar usuários
+- `POST /usuarios` - Criar usuário
+
+## Desenvolvimento
+
+### Adicionar Novo Template
+1. Crie o template Handlebars em `templates.service.ts`
+2. Registre helpers customizados se necessário
+3. Teste com dados reais
+
+### Configurar Email
+1. Configure as variáveis de email no `.env`
+2. Implemente o serviço de email em `solicitacoes.service.ts`
+3. Teste o envio de PDFs
+
+### Monitoramento Redis
+```bash
+# Conectar ao Redis CLI
+redis-cli
+
+# Verificar chaves
+KEYS *
+
+# Verificar TTL
+TTL template:nexxera
+
+# Limpar cache
+FLUSHDB
+```
+
 ## Description
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.

@@ -12,6 +12,7 @@ import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { TemplatesModule } from './modules/templates/templates.module';
 import { PdfModule } from './modules/pdf/pdf.module';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { PdfModule } from './modules/pdf/pdf.module';
     RedisModule,
     TemplatesModule,
     PdfModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

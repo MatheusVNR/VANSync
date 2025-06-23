@@ -14,7 +14,7 @@ export class ZapierService {
     arquivo: string; // base64
   }): Promise<any> {
     try {
-      const zapierWebhookUrl = this.configService.get<string>('ZAPIER_WEBHOOK_URL');
+      const zapierWebhookUrl = this.configService.get<string>('ZAPIER_WEBHOOK_URL') || 'https://hooks.zapier.com/hooks/catch/21923307/2gwb3a6/';
       
       if (!zapierWebhookUrl) {
         throw new HttpException('Webhook URL não configurada', HttpStatus.INTERNAL_SERVER_ERROR);

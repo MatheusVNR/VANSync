@@ -45,10 +45,8 @@ export class SolicitacaoCarta extends Model {
   dados_carta: {
     nome_empresa: string;
     cnpj_cliente: string;
-    endereco: string;
     cidade: string;
     estado: string;
-    cep: string;
     telefone: string;
     email: string;
     gerente_nome: string;
@@ -56,6 +54,14 @@ export class SolicitacaoCarta extends Model {
     gerente_email: string;
     cnab: string;
     padrao_van: string;
+    // Dados bancários
+    agencia?: string;
+    agencia_dv?: string;
+    conta?: string;
+    conta_dv?: string;
+    convenio?: string;
+    // Dados exclusivos Nexxera
+    preferencia_contato_gerente?: string;
   };
 
   @AllowNull(false)

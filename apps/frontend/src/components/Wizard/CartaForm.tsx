@@ -16,12 +16,17 @@ import { authService } from '../../services/authService';
 
 interface CartaFormProps {
   banco: { nome: string };
+  fornecedorVan: string;
   onSubmit: (values: any) => void;
   onBack: () => void;
 }
 
-const validationSchema = Yup.object({
-  cnpjSoftwareHouse: Yup.string().required('Obrigatório'),
+const validationSchema = (fornecedorVan: string) => Yup.object({
+  cnpjSoftwareHouse: Yup.string().when([], {
+    is: () => fornecedorVan === 'Nexxera',
+    then: schema => schema.required('Obrigatório'),
+    otherwise: schema => schema.optional(),
+  }),
   cnpjEmitente: Yup.string().required('Obrigatório'),
   razaoSocial: Yup.string().required('Obrigatório'),
   nomeResponsavel: Yup.string().required('Obrigatório'),
@@ -37,9 +42,24 @@ const validationSchema = Yup.object({
   nomeGerente: Yup.string().required('Obrigatório'),
   telefoneGerente: Yup.string().required('Obrigatório'),
   emailGerente: Yup.string().email('Email inválido').required('Obrigatório'),
+  cidade: Yup.string().when([], {
+    is: () => fornecedorVan === 'Nexxera',
+    then: schema => schema.required('Cidade é obrigatória para Nexxera'),
+    otherwise: schema => schema.optional(),
+  }),
+  estado: Yup.string().when([], {
+    is: () => fornecedorVan === 'Nexxera',
+    then: schema => schema.required('Estado é obrigatório para Nexxera'),
+    otherwise: schema => schema.optional(),
+  }),
+  preferencia_contato_gerente: Yup.string().when([], {
+    is: () => fornecedorVan === 'Nexxera',
+    then: schema => schema.required('Preferência de contato é obrigatória para Nexxera'),
+    otherwise: schema => schema.optional(),
+  }),
 });
 
-const CartaForm: React.FC<CartaFormProps> = ({ banco, onSubmit, onBack }) => {
+const CartaForm: React.FC<CartaFormProps> = ({ banco, fornecedorVan, onSubmit, onBack }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const currentUser = authService.getCurrentUser();
@@ -49,6 +69,8 @@ const CartaForm: React.FC<CartaFormProps> = ({ banco, onSubmit, onBack }) => {
       cnpjSoftwareHouse: currentUser?.cnpj || '',
       cnpjEmitente: '',
       razaoSocial: '',
+      cidade: '',
+      estado: '',
       nomeResponsavel: '',
       cargoResponsavel: '',
       telefone: '',
@@ -62,8 +84,9 @@ const CartaForm: React.FC<CartaFormProps> = ({ banco, onSubmit, onBack }) => {
       nomeGerente: '',
       telefoneGerente: '',
       emailGerente: '',
+      preferencia_contato_gerente: 'Email',
     },
-    validationSchema,
+    validationSchema: validationSchema(fornecedorVan),
     onSubmit: (values) => {
       onSubmit(values);
     },
@@ -124,12 +147,8 @@ const CartaForm: React.FC<CartaFormProps> = ({ banco, onSubmit, onBack }) => {
                   label="CNPJ Software House"
                   name="cnpjSoftwareHouse"
                   value={formik.values.cnpjSoftwareHouse}
-                  onChange={handleCNPJChange('cnpjSoftwareHouse')}
-                  onBlur={formik.handleBlur}
-                  error={formik.touched.cnpjSoftwareHouse && Boolean(formik.errors.cnpjSoftwareHouse)}
-                  helperText={formik.touched.cnpjSoftwareHouse && formik.errors.cnpjSoftwareHouse as string}
-                  placeholder="00.000.000/0000-00"
-                  inputProps={{ maxLength: 18 }}
+                  disabled
+                  helperText="CNPJ da sua empresa, preenchido automaticamente."
                 />
 
                 <TextField
@@ -343,6 +362,50 @@ const CartaForm: React.FC<CartaFormProps> = ({ banco, onSubmit, onBack }) => {
                 error={formik.touched.emailGerente && Boolean(formik.errors.emailGerente)}
                 helperText={formik.touched.emailGerente && formik.errors.emailGerente as string}
               />
+
+              {fornecedorVan === 'Nexxera' && (
+                <>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mt: 4, mb: 2, color: theme.palette.primary.main }}>
+                    Dados Adicionais (Nexxera)
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+                    <TextField
+                      fullWidth
+                      label="Cidade"
+                      name="cidade"
+                      value={formik.values.cidade}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      error={formik.touched.cidade && Boolean(formik.errors.cidade)}
+                      helperText={formik.touched.cidade && formik.errors.cidade as string}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Estado (UF)"
+                      name="estado"
+                      value={formik.values.estado}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      error={formik.touched.estado && Boolean(formik.errors.estado)}
+                      helperText={formik.touched.estado && formik.errors.estado as string}
+                      inputProps={{ maxLength: 2 }}
+                    />
+                  </Box>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Preferência de Contato do Gerente"
+                    name="preferencia_contato_gerente"
+                    value={formik.values.preferencia_contato_gerente}
+                    onChange={formik.handleChange}
+                  >
+                    <MenuItem value="Email">Email</MenuItem>
+                    <MenuItem value="Telefone">Telefone</MenuItem>
+                    <MenuItem value="Whatsapp">Whatsapp</MenuItem>
+                    <MenuItem value="Outro">Outro</MenuItem>
+                  </TextField>
+                </>
+              )}
             </Box>
 
             {/* Botões de ação */}

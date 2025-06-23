@@ -4,7 +4,8 @@ import CartaPreview from '../CartaPreview';
 interface Passo4CartaPreviewProps {
     selectedProducts: string[];
     formData: any;
-    selectedBank: any;
+    bank: any;
+    fornecedorVan?: string;
     onConfirm: () => void;
     onBack: () => void;
     loading: boolean;
@@ -13,7 +14,8 @@ interface Passo4CartaPreviewProps {
 const Passo4CartaPreview: React.FC<Passo4CartaPreviewProps> = ({ 
   selectedProducts, 
   formData, 
-  selectedBank, 
+  bank,
+  fornecedorVan = 'nexxera',
   onConfirm, 
   onBack, 
   loading 
@@ -22,7 +24,8 @@ const Passo4CartaPreview: React.FC<Passo4CartaPreviewProps> = ({
       <CartaPreview 
         produtos={selectedProducts} 
         formData={formData}
-        selectedBank={selectedBank}
+        selectedBank={bank}
+        fornecedorVan={fornecedorVan}
         onConfirm={onConfirm} 
         onBack={onBack}
         loading={loading}

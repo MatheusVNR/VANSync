@@ -21,11 +21,15 @@ import {
   Business as BusinessIcon,
 } from '@mui/icons-material';
 import InputMasked from '../../InputMasked';
+import { authService } from '../../../services/authService';
+import { maskCNPJ } from '../../../utils/masks';
+import * as Yup from 'yup';
 
 interface Passo3CartaFormProps {
   bank: any;
   selectedProducts?: string[];
   formData?: any;
+  fornecedorVan: string;
   onBack: () => void;
   onNext: (data: any) => void;
 }
@@ -47,20 +51,46 @@ interface FormData {
   nomeGerente: string;
   telefoneGerente: string;
   emailGerente: string;
+  fornecedorVan: string;
+  cidade?: string;
+  estado?: string;
+  preferencia_contato_gerente?: string;
 }
+
+const validationSchema = (fornecedorVan: string) => Yup.object({
+  cnpjEmitente: Yup.string().required('CNPJ do emitente é obrigatório'),
+  razaoSocial: Yup.string().required('Razão social é obrigatória'),
+  nomeResponsavel: Yup.string().required('Nome do responsável é obrigatório'),
+  cargoResponsavel: Yup.string().required('Cargo do responsável é obrigatório'),
+  telefone: Yup.string().required('Telefone é obrigatório'),
+  email: Yup.string().required('Email é obrigatório'),
+  agencia: Yup.string().required('Agência é obrigatória'),
+  conta: Yup.string().required('Conta é obrigatória'),
+  convenio: Yup.string().required('Convênio é obrigatório'),
+  cnab: Yup.string().required('CNAB é obrigatório'),
+  fornecedorVan: Yup.string().required('Fornecedor VAN é obrigatório'),
+  nomeGerente: Yup.string().required('Nome do gerente é obrigatório'),
+  telefoneGerente: Yup.string().required('Telefone do gerente é obrigatório'),
+  emailGerente: Yup.string().required('Email do gerente é obrigatório'),
+  cidade: Yup.string().optional(),
+  estado: Yup.string().optional().max(2, 'UF deve ter no máximo 2 caracteres'),
+  preferencia_contato_gerente: Yup.string().optional(),
+});
 
 const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
   bank,
   selectedProducts = [],
   formData = {},
+  fornecedorVan,
   onBack,
   onNext,
 }) => {
+  const currentUser = authService.getCurrentUser();
   // Garantir que formData seja sempre um objeto válido
   const safeFormData = formData || {};
   
   const [form, setForm] = useState<FormData>({
-    cnpjSoftwareHouse: safeFormData.cnpjSoftwareHouse || '',
+    cnpjSoftwareHouse: currentUser?.cnpj || '',
     cnpjEmitente: safeFormData.cnpjEmitente || '',
     razaoSocial: safeFormData.razaoSocial || '',
     nomeResponsavel: safeFormData.nomeResponsavel || '',
@@ -76,6 +106,10 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
     nomeGerente: safeFormData.nomeGerente || '',
     telefoneGerente: safeFormData.telefoneGerente || '',
     emailGerente: safeFormData.emailGerente || '',
+    fornecedorVan: safeFormData.fornecedorVan || '',
+    cidade: safeFormData.cidade || '',
+    estado: safeFormData.estado || '',
+    preferencia_contato_gerente: safeFormData.preferencia_contato_gerente || 'Email',
   });
 
   const [errors, setErrors] = useState<any>({});
@@ -118,6 +152,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
     if (!form.conta) newErrors.conta = 'Conta é obrigatória';
     if (!form.convenio) newErrors.convenio = 'Convênio é obrigatório';
     if (!form.cnab) newErrors.cnab = 'CNAB é obrigatório';
+    if (!form.fornecedorVan) newErrors.fornecedorVan = 'Fornecedor VAN é obrigatório';
     if (!form.nomeGerente) newErrors.nomeGerente = 'Nome do gerente é obrigatório';
     if (!form.telefoneGerente) newErrors.telefoneGerente = 'Telefone do gerente é obrigatório';
     if (!form.emailGerente) newErrors.emailGerente = 'Email do gerente é obrigatório';
@@ -196,14 +231,13 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
         
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
           <Box sx={{ flex: '1 1 300px', minWidth: 0 }}>
-            <InputMasked
-              label="CNPJ da Software House"
-              value={form.cnpjSoftwareHouse}
-              onChange={(value) => handleInputChange('cnpjSoftwareHouse', value)}
-              mask="cnpj"
-              error={!!errors.cnpjSoftwareHouse}
-              helperText={errors.cnpjSoftwareHouse}
+            <TextField
               fullWidth
+              label="CNPJ Software House"
+              name="cnpjSoftwareHouse"
+              value={maskCNPJ(form.cnpjSoftwareHouse)}
+              disabled
+              helperText="CNPJ da sua empresa, preenchido automaticamente."
             />
           </Box>
         </Box>
@@ -381,6 +415,42 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
           </Box>
         </Box>
 
+        {/* Seleção de Fornecedor VAN */}
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: theme.palette.primary.main, mt: 2 }}>
+            Fornecedor VAN
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ flex: '1 1 300px', minWidth: 0 }}>
+            <FormControl fullWidth error={!!errors.fornecedorVan}>
+              <InputLabel>Fornecedor VAN *</InputLabel>
+              <Select
+                value={form.fornecedorVan}
+                label="Fornecedor VAN *"
+                onChange={(e) => handleInputChange('fornecedorVan', e.target.value)}
+                sx={{
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: errors.fornecedorVan ? theme.palette.error.main : undefined,
+                  },
+                }}
+              >
+                <MenuItem value="">
+                  <em>Selecione um fornecedor</em>
+                </MenuItem>
+                <MenuItem value="nexxera">Nexxera</MenuItem>
+                <MenuItem value="finnet">Finnet</MenuItem>
+              </Select>
+              {errors.fornecedorVan && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                  {errors.fornecedorVan}
+                </Typography>
+              )}
+            </FormControl>
+          </Box>
+        </Box>
+
         {/* Dados do Gerente */}
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: theme.palette.primary.main, mt: 2 }}>
@@ -425,6 +495,43 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
             />
           </Box>
         </Box>
+
+        {fornecedorVan === 'Nexxera' && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: theme.palette.primary.main }}>
+              Dados Adicionais (Exclusivo Nexxera)
+            </Typography>
+            
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <TextField
+                fullWidth
+                label="Cidade"
+                value={form.cidade}
+                onChange={(e) => handleInputChange('cidade', e.target.value)}
+              />
+              <TextField
+                fullWidth
+                label="Estado (UF)"
+                value={form.estado}
+                onChange={(e) => handleInputChange('estado', e.target.value)}
+                inputProps={{ maxLength: 2 }}
+              />
+            </Box>
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Preferência de Contato do Gerente</InputLabel>
+              <Select
+                value={form.preferencia_contato_gerente}
+                label="Preferência de Contato do Gerente"
+                onChange={(e) => handleInputChange('preferencia_contato_gerente', e.target.value)}
+              >
+                <MenuItem value="Email">Email</MenuItem>
+                <MenuItem value="Telefone">Telefone</MenuItem>
+                <MenuItem value="Whatsapp">Whatsapp</MenuItem>
+              </Select>
+            </FormControl>
+          </>
+        )}
 
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>

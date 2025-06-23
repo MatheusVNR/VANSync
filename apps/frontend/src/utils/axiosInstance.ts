@@ -7,7 +7,7 @@ console.log('🔗 API Base URL:', API_BASE_URL);
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL, 
-  timeout: 10000
+  timeout: 60000
 });
 
 // Interceptor para adicionar token em todas as requisições
@@ -41,35 +41,32 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   async (error) => {
-    console.error('❌ Erro na resposta:', error.response?.status, error.config?.url);
+    const originalRequest = error.config;
+    console.error('❌ Erro na resposta:', error.response?.status, originalRequest?.url);
     
-    // Se o erro for 401 (não autorizado) e não for uma tentativa de refresh
-    if (error.response?.status === 401 && !error.config.url?.includes('/auth/refresh')) {
-      const auth = authService.getAuthTokens();
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
       
-      if (auth?.refreshToken) {
+      const currentAuth = authService.getAuthTokens();
+      if (currentAuth?.refreshToken) {
         try {
           console.log('🔄 Tentando renovar token...');
-          const newTokens = await authService.refresh(auth.refreshToken);
+          const newAuthData = await authService.refresh(currentAuth.refreshToken);
           
-          // Atualizar tokens no sessionStorage
-          sessionStorage.setItem('auth', JSON.stringify(newTokens));
+          // Salvar novos tokens
+          sessionStorage.setItem('auth', JSON.stringify(newAuthData));
           
-          // Reenviar requisição original com novo token
-          error.config.headers.Authorization = `Bearer ${newTokens.accessToken}`;
           console.log('✅ Token renovado, reenviando requisição...');
-          return axiosInstance.request(error.config);
+          
+          // Atualizar cabeçalho da requisição original e reenviar
+          originalRequest.headers['Authorization'] = `Bearer ${newAuthData.accessToken}`;
+          return axiosInstance(originalRequest);
         } catch (refreshError) {
           console.error('❌ Falha na renovação do token:', refreshError);
-          // Refresh falhou, fazer logout
           authService.logout();
-          window.location.href = '/';
+          window.location.href = '/login';
           return Promise.reject(refreshError);
         }
-      } else {
-        // Sem refresh token, fazer logout
-        authService.logout();
-        window.location.href = '/';
       }
     }
     

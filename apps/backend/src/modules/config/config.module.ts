@@ -9,11 +9,11 @@ import { ConfigModule } from '@nestjs/config';
       load: [
         () => ({
           database: {
-            host: process.env.DB_HOST || 'localhost',
+            host: process.env.DB_HOST,
             port: parseInt(process.env.DB_PORT || '5432'),
-            username: process.env.DB_USERNAME || 'postgres',
-            password: process.env.DB_PASSWORD || 'password',
-            database: process.env.DB_NAME || 'vansync',
+            username: process.env.DB_USERNAME,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
           },
           redis: {
             host: process.env.REDIS_HOST || 'localhost',
@@ -28,7 +28,6 @@ import { ConfigModule } from '@nestjs/config';
           },
           zapier: {
             webhookUrl: process.env.ZAPIER_WEBHOOK_URL,
-            apiKey: process.env.ZAPIER_API_KEY,
           },
           email: {
             host: process.env.EMAIL_HOST,

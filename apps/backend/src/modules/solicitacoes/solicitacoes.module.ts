@@ -9,6 +9,8 @@ import { UsuariosModule } from '../usuarios/usuarios.module';
 import { PdfModule } from '../pdf/pdf.module';
 import { TemplatesModule } from '../templates/templates.module';
 import { RedisModule } from '../redis/redis.module';
+import { EmailModule } from '../email/email.module';
+import { ZapierModule } from '../zapier/zapier.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { RedisModule } from '../redis/redis.module';
     PdfModule,
     TemplatesModule,
     RedisModule,
+    EmailModule,
+    ZapierModule,
   ],
   controllers: [SolicitacoesController],
   providers: [SolicitacoesService],

@@ -35,7 +35,7 @@ const Passo1BancoSelection: React.FC<Passo1BancoSelectionProps> = ({
   const [bancos, setBancos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [selectedBanco, setSelectedBanco] = useState<any>(selectedBank);
+  const [selectedBanco, setSelectedBanco] = useState<any | null>(selectedBank || null);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));

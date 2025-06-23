@@ -43,6 +43,7 @@ const WizardCartaVan: React.FC = () => {
   const [selectedBank, setSelectedBank] = useState<any>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [formData, setFormData] = useState<any>({});
+  const [fornecedorVan, setFornecedorVan] = useState<string>('nexxera');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
@@ -93,6 +94,14 @@ const WizardCartaVan: React.FC = () => {
     setCompletedSteps(newCompletedSteps);
   };
 
+  const handleProductToggle = (produto: string) => {
+    setSelectedProducts(prev => 
+      prev.includes(produto)
+        ? prev.filter(p => p !== produto)
+        : [...prev, produto]
+    );
+  };
+
   const handleConfirm = async () => {
     if (!selectedBank || !selectedProducts.length || !formData) {
       setError('Dados incompletos para criar a solicitação');
@@ -105,9 +114,15 @@ const WizardCartaVan: React.FC = () => {
     try {
       const currentUser = authService.getCurrentUser();
       
+      if (!currentUser?.cnpj) {
+        throw new Error('Usuário não autenticado ou CNPJ não encontrado');
+      }
+      
       const solicitacao: SolicitacaoCarta = {
+        cnpj: currentUser.cnpj,
         banco_id: selectedBank.codigo,
         produtos: selectedProducts,
+        fornecedor_van: fornecedorVan,
         cnpj_software_house: formData.cnpjSoftwareHouse,
         cnpj_emitente: formData.cnpjEmitente,
         razao_social: formData.razaoSocial,
@@ -126,25 +141,43 @@ const WizardCartaVan: React.FC = () => {
         email_gerente: formData.emailGerente,
       };
 
-      // Criar solicitação e gerar PDFs
+      console.log('🚀 Iniciando criação da solicitação...');
+      console.log('👤 Usuário logado:', currentUser);
+      console.log('📋 Dados da solicitação:', solicitacao);
+      
+      // 1. Criar solicitação
       const response = await solicitacaoService.create(solicitacao);
+      console.log('✅ Solicitação criada:', response.id);
       
-      // Enviar emails das cartas
-      await solicitacaoService.sendCartasEmail(response.id);
+      // 2. Processar completo (emails + zapier + finalização)
+      console.log('🔄 Iniciando processamento completo...');
+      const resultadoProcessamento = await solicitacaoService.processarCompleto(response.id);
       
-      // Integrar com Zapier
-      await solicitacaoService.integrateZapier(response.id);
-      
-      setSuccess(`Solicitação criada com sucesso! ${selectedProducts.length} carta${selectedProducts.length > 1 ? 's' : ''} enviadas por e-mail e integradas via Zapier.`);
-      
-      // Redirecionar após 3 segundos
-      setTimeout(() => {
-        navigate('/menu');
-      }, 3000);
+      if (resultadoProcessamento.success) {
+        const { resultados } = resultadoProcessamento;
+        
+        console.log('📊 Resultados do processamento:', resultados);
+        
+        const mensagem = [
+          `Solicitação criada com sucesso!`,
+          `📧 ${resultados.emails.emailsEnviados}/${selectedProducts.length} emails enviados`,
+          `🔗 ${resultados.zapier.integracoesEnviadas}/${selectedProducts.length} integrações Zapier realizadas`,
+          `🏁 Solicitação finalizada`
+        ].join('\n');
+        
+        setSuccess(mensagem);
+        
+        // Redirecionar após 5 segundos
+        setTimeout(() => {
+          navigate('/menu');
+        }, 5000);
+      } else {
+        throw new Error(resultadoProcessamento.message);
+      }
       
     } catch (err: any) {
-      console.error('Erro ao criar solicitação:', err);
-      setError(err.message || 'Erro ao criar solicitação');
+      console.error('❌ Erro ao processar solicitação:', err);
+      setError(err.message || 'Erro ao processar solicitação');
     } finally {
       setLoading(false);
     }
@@ -310,20 +343,20 @@ const WizardCartaVan: React.FC = () => {
               isLazyMount
             >
               <Passo1BancoSelection
-                selectedBank={selectedBank}
-                onNext={(banco) => {
-                  setSelectedBank(banco);
+                onNext={(bankData) => {
+                  setSelectedBank(bankData);
                   handleStepComplete(WizardStepEnum.BankSelection);
                   wizard.nextStep();
                 }}
               />
 
               <Passo2ProdutoSelection
-                banco={selectedBank}
+                bank={selectedBank}
                 selectedProducts={selectedProducts}
+                onProductToggle={handleProductToggle}
                 onBack={() => wizard.previousStep()}
-                onNext={(produtos) => {
-                  setSelectedProducts(produtos);
+                onNext={() => {
+                  setFornecedorVan(selectedBank?.padrao_van || 'nexxera');
                   handleStepComplete(WizardStepEnum.ProductSelection);
                   wizard.nextStep();
                 }}
@@ -333,6 +366,7 @@ const WizardCartaVan: React.FC = () => {
                 bank={selectedBank}
                 selectedProducts={selectedProducts}
                 formData={formData}
+                fornecedorVan={fornecedorVan}
                 onBack={() => wizard.previousStep()}
                 onNext={(data) => {
                   setFormData(data);
@@ -342,9 +376,10 @@ const WizardCartaVan: React.FC = () => {
               />
 
               <Passo4CartaPreview
+                bank={selectedBank}
                 selectedProducts={selectedProducts}
                 formData={formData}
-                selectedBank={selectedBank}
+                fornecedorVan={fornecedorVan}
                 onBack={() => wizard.previousStep()}
                 onConfirm={handleConfirm}
                 loading={loading}
