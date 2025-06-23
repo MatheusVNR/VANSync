@@ -77,15 +77,153 @@ const WizardCartaVan: React.FC = () => {
   ];
 
   const handleStepChange = (stats: any) => {
-    const newStep = stats.activeStep - 1;
-    setCurrentStep(newStep);
-    
-    // Marcar passos anteriores como concluídos
-    const newCompletedSteps = new Set(completedSteps);
-    for (let i = 0; i < newStep; i++) {
-      newCompletedSteps.add(i);
+    try {
+      const newStep = stats.activeStep - 1;
+      const previousStep = currentStep;
+      
+      // Validação de segurança
+      if (newStep < 0 || newStep >= steps.length) {
+        console.error('❌ Passo inválido:', newStep);
+        return;
+      }
+      
+      setCurrentStep(newStep);
+      
+      // Se está voltando (newStep < previousStep), resetar estado dos passos seguintes
+      if (newStep < previousStep) {
+        // Usar setTimeout para garantir que setCurrentStep execute primeiro
+        setTimeout(() => {
+          resetStepsFromIndex(newStep + 1);
+        }, 0);
+      } else {
+        // Marcar passos anteriores como concluídos
+        const newCompletedSteps = new Set(completedSteps);
+        for (let i = 0; i < newStep; i++) {
+          newCompletedSteps.add(i);
+        }
+        setCompletedSteps(newCompletedSteps);
+      }
+      
+      // Validação de consistência do estado
+      validateStepConsistency(newStep);
+    } catch (error) {
+      console.error('❌ Erro ao mudar passo:', error);
+      setError('Erro ao navegar entre os passos. Tente novamente.');
     }
-    setCompletedSteps(newCompletedSteps);
+  };
+
+  // Função para validar consistência do estado em cada passo
+  const validateStepConsistency = (step: number) => {
+    try {
+      const issues = [];
+      
+      // Verificar se o banco está selecionado quando necessário
+      if (step >= WizardStepEnum.ProductSelection && !selectedBank) {
+        issues.push('Banco não selecionado');
+      }
+      
+      // Verificar se produtos estão selecionados quando necessário
+      if (step >= WizardStepEnum.CartaForm && selectedProducts.length === 0) {
+        issues.push('Nenhum produto selecionado');
+      }
+      
+      // Verificar se formulário está preenchido quando necessário
+      if (step >= WizardStepEnum.CartaPreview && Object.keys(formData).length === 0) {
+        issues.push('Formulário não preenchido');
+      }
+      
+    } catch (error) {
+      console.error('❌ Erro na validação de consistência:', error);
+    }
+  };
+
+  // Função para resetar estado dos passos a partir de um índice
+  const resetStepsFromIndex = (startIndex: number) => {
+    try {
+      // Validação de entrada
+      if (startIndex < 0 || startIndex > steps.length) {
+        console.error('❌ Índice de reset inválido:', startIndex);
+        return;
+      }
+      
+      // Resetar produtos se voltar do passo 3 ou 4 para o passo 2 ou anterior
+      if (startIndex <= WizardStepEnum.ProductSelection) {
+        setSelectedProducts([]);
+      }
+      
+      // Resetar formulário se voltar do passo 4 para o passo 3 ou anterior
+      if (startIndex <= WizardStepEnum.CartaForm) {
+        setFormData({});
+      }
+      
+      // Resetar fornecedor VAN se voltar para o passo 2 ou anterior
+      if (startIndex <= WizardStepEnum.ProductSelection) {
+        setFornecedorVan('nexxera');
+      }
+      
+      // Remover passos concluídos a partir do índice
+      const newCompletedSteps = new Set(completedSteps);
+      for (let i = startIndex; i < steps.length; i++) {
+        newCompletedSteps.delete(i);
+      }
+      setCompletedSteps(newCompletedSteps);
+      
+    } catch (error) {
+      console.error('❌ Erro ao resetar estado:', error);
+      // Em caso de erro, resetar tudo para garantir consistência
+      setSelectedProducts([]);
+      setFormData({});
+      setFornecedorVan('nexxera');
+      setCompletedSteps(new Set());
+    }
+  };
+
+  // Função para voltar com reset adequado do estado
+  const handleBack = (targetStep: number) => {
+    try {
+      // Validações de segurança
+      if (!wizard) {
+        console.error('❌ Wizard não inicializado');
+        return;
+      }
+      
+      if (targetStep < 0 || targetStep >= steps.length) {
+        console.error('❌ Passo de destino inválido:', targetStep);
+        return;
+      }
+      
+      if (targetStep >= currentStep) {
+        console.error('❌ Tentativa de voltar para passo futuro:', targetStep, '>=', currentStep);
+        return;
+      }
+      
+      // Resetar estado dos passos que serão "pulados"
+      resetStepsFromIndex(targetStep + 1);
+      
+      // Navegar para o passo desejado com proteção contra loops
+      const stepsToGoBack = currentStep - targetStep;
+      const maxAttempts = stepsToGoBack + 2; // +2 para margem de segurança
+      let attempts = 0;
+      
+      for (let i = 0; i < stepsToGoBack && attempts < maxAttempts; i++) {
+        try {
+          wizard.previousStep();
+          attempts++;
+        } catch (stepError) {
+          console.error('❌ Erro ao voltar passo:', stepError);
+          break;
+        }
+      }
+      
+      if (attempts >= maxAttempts) {
+        console.error('❌ Loop infinito detectado ao voltar passos');
+        setError('Erro ao navegar. Recarregue a página.');
+      }
+      
+    } catch (error) {
+      console.error('❌ Erro na função handleBack:', error);
+      setError('Erro ao voltar. Tente novamente.');
+    }
   };
 
   const handleStepComplete = (stepIndex: number) => {
@@ -141,22 +279,14 @@ const WizardCartaVan: React.FC = () => {
         email_gerente: formData.emailGerente,
       };
 
-      console.log('🚀 Iniciando criação da solicitação...');
-      console.log('👤 Usuário logado:', currentUser);
-      console.log('📋 Dados da solicitação:', solicitacao);
-      
       // 1. Criar solicitação
       const response = await solicitacaoService.create(solicitacao);
-      console.log('✅ Solicitação criada:', response.id);
       
       // 2. Processar completo (emails + zapier + finalização)
-      console.log('🔄 Iniciando processamento completo...');
       const resultadoProcessamento = await solicitacaoService.processarCompleto(response.id);
       
       if (resultadoProcessamento.success) {
         const { resultados } = resultadoProcessamento;
-        
-        console.log('📊 Resultados do processamento:', resultados);
         
         const mensagem = [
           `Solicitação criada com sucesso!`,
@@ -309,7 +439,7 @@ const WizardCartaVan: React.FC = () => {
                 backButton={
                   <Button
                     size="small"
-                    onClick={() => wizard?.previousStep()}
+                    onClick={() => handleBack(Math.max(0, currentStep - 1))}
                     disabled={currentStep === 0}
                   >
                     <KeyboardArrowLeft />
@@ -337,54 +467,62 @@ const WizardCartaVan: React.FC = () => {
             boxShadow: theme.shadows[1],
             overflow: 'hidden',
           }}>
-            <StepWizard
-              instance={setWizard}
-              onStepChange={handleStepChange}
-              isLazyMount
-            >
-              <Passo1BancoSelection
-                onNext={(bankData) => {
-                  setSelectedBank(bankData);
-                  handleStepComplete(WizardStepEnum.BankSelection);
-                  wizard.nextStep();
-                }}
-              />
+            {wizard ? (
+              <StepWizard
+                instance={setWizard}
+                onStepChange={handleStepChange}
+                isLazyMount
+              >
+                <Passo1BancoSelection
+                  onNext={(bankData) => {
+                    setSelectedBank(bankData);
+                    handleStepComplete(WizardStepEnum.BankSelection);
+                    wizard.nextStep();
+                  }}
+                />
 
-              <Passo2ProdutoSelection
-                bank={selectedBank}
-                selectedProducts={selectedProducts}
-                onProductToggle={handleProductToggle}
-                onBack={() => wizard.previousStep()}
-                onNext={() => {
-                  setFornecedorVan(selectedBank?.padrao_van || 'nexxera');
-                  handleStepComplete(WizardStepEnum.ProductSelection);
-                  wizard.nextStep();
-                }}
-              />
+                <Passo2ProdutoSelection
+                  bank={selectedBank}
+                  selectedProducts={selectedProducts}
+                  onProductToggle={handleProductToggle}
+                  onBack={() => handleBack(WizardStepEnum.BankSelection)}
+                  onNext={() => {
+                    setFornecedorVan(selectedBank?.padrao_van || 'nexxera');
+                    handleStepComplete(WizardStepEnum.ProductSelection);
+                    wizard.nextStep();
+                  }}
+                />
 
-              <Passo3CartaForm
-                bank={selectedBank}
-                selectedProducts={selectedProducts}
-                formData={formData}
-                fornecedorVan={fornecedorVan}
-                onBack={() => wizard.previousStep()}
-                onNext={(data) => {
-                  setFormData(data);
-                  handleStepComplete(WizardStepEnum.CartaForm);
-                  wizard.nextStep();
-                }}
-              />
+                <Passo3CartaForm
+                  bank={selectedBank}
+                  selectedProducts={selectedProducts}
+                  formData={formData}
+                  fornecedorVan={fornecedorVan}
+                  onBack={() => handleBack(WizardStepEnum.ProductSelection)}
+                  onNext={(data) => {
+                    setFormData(data);
+                    handleStepComplete(WizardStepEnum.CartaForm);
+                    wizard.nextStep();
+                  }}
+                />
 
-              <Passo4CartaPreview
-                bank={selectedBank}
-                selectedProducts={selectedProducts}
-                formData={formData}
-                fornecedorVan={fornecedorVan}
-                onBack={() => wizard.previousStep()}
-                onConfirm={handleConfirm}
-                loading={loading}
-              />
-            </StepWizard>
+                <Passo4CartaPreview
+                  bank={selectedBank}
+                  selectedProducts={selectedProducts}
+                  formData={formData}
+                  fornecedorVan={fornecedorVan}
+                  onBack={() => handleBack(WizardStepEnum.CartaForm)}
+                  onConfirm={handleConfirm}
+                  loading={loading}
+                />
+              </StepWizard>
+            ) : (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body1" color="text.secondary">
+                  Carregando wizard...
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Container>
       </Box>
