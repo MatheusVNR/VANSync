@@ -1,7 +1,6 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Usuario, TipoUsuario } from '../../database/entities/Usuario';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsuariosService {
@@ -29,12 +28,9 @@ export class UsuariosService {
       throw new HttpException('CNPJ já cadastrado', HttpStatus.BAD_REQUEST);
     }
 
-    // Criptografar token
-    const hashedToken = await bcrypt.hash(token, 10);
-
     return this.usuarioModel.create({
       cnpj: cleanCnpj,
-      token: hashedToken,
+      token, // Salva token direto, sem criptografia
       tipo,
       nome_empresa,
       email,
@@ -44,7 +40,7 @@ export class UsuariosService {
 
   async findAll(): Promise<Usuario[]> {
     return this.usuarioModel.findAll({
-      attributes: { exclude: ['token'] } // Não retornar token criptografado
+      attributes: { exclude: ['token'] } // Não retornar token por segurança
     });
   }
 
@@ -82,11 +78,8 @@ export class UsuariosService {
       throw new HttpException('Credenciais inválidas', HttpStatus.UNAUTHORIZED);
     }
 
-    // Para testes: comparar tokens simples
-    // TODO: Em produção, usar bcrypt.compare(token, usuario.token)
-    const isTokenValid = token === usuario.token;
-    
-    if (!isTokenValid) {
+    // Comparação direta do token
+    if (token !== usuario.token) {
       throw new HttpException('Credenciais inválidas', HttpStatus.UNAUTHORIZED);
     }
 
@@ -98,9 +91,12 @@ export class UsuariosService {
     
     const updateData: any = { ...updateUsuarioDto };
     
-    // Se token foi fornecido, criptografar
-    if (updateData.token) {
-      updateData.token = await bcrypt.hash(updateData.token, 10);
+    // Se token foi fornecido e não é placeholder, salva direto
+    if (updateData.token && updateData.token !== '********') {
+      // Mantém o token como está, sem criptografia
+    } else {
+      // Remove o campo token se for placeholder para não alterar
+      delete updateData.token;
     }
 
     await usuario.update(updateData);
@@ -108,7 +104,38 @@ export class UsuariosService {
     return this.findOne(id);
   }
 
+  async canDelete(id: number): Promise<{ canDelete: boolean; message?: string }> {
+    const usuario = await this.usuarioModel.findByPk(id, {
+      include: [{
+        model: require('../../database/entities/SolicitacaoCarta').SolicitacaoCarta,
+        as: 'solicitacoes'
+      }]
+    });
+    
+    if (!usuario) {
+      throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    const hasSolicitacoes = usuario.solicitacoes && usuario.solicitacoes.length > 0;
+    
+    if (hasSolicitacoes) {
+      return {
+        canDelete: false,
+        message: 'Não é possível excluir um usuário que possua solicitações.'
+      };
+    }
+
+    return { canDelete: true };
+  }
+
   async remove(id: number): Promise<void> {
+    // Verifica se pode excluir antes de tentar
+    const canDelete = await this.canDelete(id);
+    
+    if (!canDelete.canDelete) {
+      throw new HttpException(canDelete.message!, HttpStatus.BAD_REQUEST);
+    }
+
     const usuario = await this.findOne(id);
     await usuario.destroy();
   }

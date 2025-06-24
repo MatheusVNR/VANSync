@@ -15,12 +15,12 @@ import {
   AccountBalance as BankIcon,
   Settings as SettingsIcon,
   Business as BusinessIcon,
-  Security as SecurityIcon,
 } from '@mui/icons-material';
 import MainLayout from '../../components/MainLayout';
 import CadastroBancos from './CadastroBancos';
+import CadastroUsuarios from './CadastroUsuarios';
 
-type ConfigSection = 'menu' | 'bancos' | 'usuarios' | 'sistema';
+type ConfigSection = 'menu' | 'bancos' | 'usuarios';
 
 const CadastroMain: React.FC = () => {
   const [currentSection, setCurrentSection] = useState<ConfigSection>('menu');
@@ -41,15 +41,6 @@ const CadastroMain: React.FC = () => {
       description: 'Gerencie usuários e permissões do sistema',
       icon: <BusinessIcon sx={{ fontSize: 40, color: theme.palette.secondary.main }} />,
       color: theme.palette.secondary.main,
-      disabled: true, // Futura implementação
-    },
-    {
-      id: 'sistema' as ConfigSection,
-      title: 'Configurações do Sistema',
-      description: 'Configurações gerais e parâmetros',
-      icon: <SecurityIcon sx={{ fontSize: 40, color: theme.palette.info.main }} />,
-      color: theme.palette.info.main,
-      disabled: true, // Futura implementação
     },
   ];
 
@@ -58,7 +49,7 @@ const CadastroMain: React.FC = () => {
       setCurrentSection('menu');
     } else {
       const option = configOptions.find(opt => opt.id === section);
-      if (option && !option.disabled) {
+      if (option) {
         setCurrentSection(section);
       }
     }
@@ -95,7 +86,7 @@ const CadastroMain: React.FC = () => {
           gridTemplateColumns: { 
             xs: '1fr', 
             sm: 'repeat(2, 1fr)', 
-            md: 'repeat(3, 1fr)' 
+            md: 'repeat(2, 1fr)' 
           },
           gap: 3,
           maxWidth: 'lg',
@@ -107,16 +98,14 @@ const CadastroMain: React.FC = () => {
               sx={{ 
                 height: '100%',
                 transition: 'all 0.3s ease',
-                opacity: option.disabled ? 0.6 : 1,
                 '&:hover': {
-                  transform: option.disabled ? 'none' : 'translateY(-4px)',
-                  boxShadow: option.disabled ? 1 : 4,
+                  transform: 'translateY(-4px)',
+                  boxShadow: 4,
                 },
               }}
             >
               <CardActionArea
                 onClick={() => handleSectionClick(option.id)}
-                disabled={option.disabled}
                 sx={{ 
                   height: '100%',
                   p: 3,
@@ -146,15 +135,6 @@ const CadastroMain: React.FC = () => {
                 >
                   {option.description}
                 </Typography>
-
-                {option.disabled && (
-                  <Chip 
-                    label="Em breve" 
-                    size="small" 
-                    color="default" 
-                    variant="outlined"
-                  />
-                )}
               </CardActionArea>
             </Card>
           ))}
@@ -168,27 +148,7 @@ const CadastroMain: React.FC = () => {
       case 'bancos':
         return <CadastroBancos />;
       case 'usuarios':
-        return (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
-            <Typography variant="h5" gutterBottom>
-              Usuários
-            </Typography>
-            <Typography color="text.secondary">
-              Funcionalidade em desenvolvimento
-            </Typography>
-          </Box>
-        );
-      case 'sistema':
-        return (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
-            <Typography variant="h5" gutterBottom>
-              Configurações do Sistema
-            </Typography>
-            <Typography color="text.secondary">
-              Funcionalidade em desenvolvimento
-            </Typography>
-          </Box>
-        );
+        return <CadastroUsuarios />;
       default:
         return renderMenu();
     }

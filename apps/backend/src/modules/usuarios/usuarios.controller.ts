@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
+import { UsuarioDTO } from './usuarios.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -12,7 +13,7 @@ export class UsuariosController {
 
   @Post()
   @Roles(TipoUsuario.ADMIN)
-  create(@Body() createUsuarioDto: any) {
+  create(@Body() createUsuarioDto: UsuarioDTO) {
     return this.usuariosService.create(createUsuarioDto);
   }
 
@@ -30,8 +31,14 @@ export class UsuariosController {
 
   @Patch(':id')
   @Roles(TipoUsuario.ADMIN)
-  update(@Param('id') id: string, @Body() updateUsuarioDto: any) {
+  update(@Param('id') id: string, @Body() updateUsuarioDto: UsuarioDTO) {
     return this.usuariosService.update(+id, updateUsuarioDto);
+  }
+
+  @Get(':id/can-delete')
+  @Roles(TipoUsuario.ADMIN)
+  async canDelete(@Param('id') id: string) {
+    return this.usuariosService.canDelete(+id);
   }
 
   @Delete(':id')
