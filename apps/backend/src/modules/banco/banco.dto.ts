@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsArray } from 'class-validator';
 
 export class BancoDTO {
   @IsString()
@@ -21,7 +21,6 @@ export class BancoDTO {
   @IsOptional()
   cnab444?: boolean;
 
-  @IsString()
   @IsOptional()
-  produtos?: string;
+  produtos?: string | string[];
 }

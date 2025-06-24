@@ -1,15 +1,72 @@
-import React from 'react';
-import { Container, Typography, Box, useTheme, useMediaQuery } from '@mui/material';
-import CadastroBancos from './CadastroBancos';
+import React, { useState } from 'react';
+import { 
+  Container, 
+  Typography, 
+  Box, 
+  useTheme, 
+  useMediaQuery,
+  Card,
+  CardContent,
+  CardActionArea,
+  Fade,
+  Chip,
+} from '@mui/material';
+import {
+  AccountBalance as BankIcon,
+  Settings as SettingsIcon,
+  Business as BusinessIcon,
+  Security as SecurityIcon,
+} from '@mui/icons-material';
 import MainLayout from '../../components/MainLayout';
+import CadastroBancos from './CadastroBancos';
+
+type ConfigSection = 'menu' | 'bancos' | 'usuarios' | 'sistema';
 
 const CadastroMain: React.FC = () => {
+  const [currentSection, setCurrentSection] = useState<ConfigSection>('menu');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  return (
-    <MainLayout>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+  const configOptions = [
+    {
+      id: 'bancos' as ConfigSection,
+      title: 'Cadastro de Bancos',
+      description: 'Gerencie os bancos e suas configurações VAN',
+      icon: <BankIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />,
+      color: theme.palette.primary.main,
+    },
+    {
+      id: 'usuarios' as ConfigSection,
+      title: 'Usuários',
+      description: 'Gerencie usuários e permissões do sistema',
+      icon: <BusinessIcon sx={{ fontSize: 40, color: theme.palette.secondary.main }} />,
+      color: theme.palette.secondary.main,
+      disabled: true, // Futura implementação
+    },
+    {
+      id: 'sistema' as ConfigSection,
+      title: 'Configurações do Sistema',
+      description: 'Configurações gerais e parâmetros',
+      icon: <SecurityIcon sx={{ fontSize: 40, color: theme.palette.info.main }} />,
+      color: theme.palette.info.main,
+      disabled: true, // Futura implementação
+    },
+  ];
+
+  const handleSectionClick = (section: ConfigSection) => {
+    if (section === 'menu') {
+      setCurrentSection('menu');
+    } else {
+      const option = configOptions.find(opt => opt.id === section);
+      if (option && !option.disabled) {
+        setCurrentSection(section);
+      }
+    }
+  };
+
+  const renderMenu = () => (
+    <Fade in={true} timeout={300}>
+      <Box>
         {/* Header */}
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography 
@@ -21,19 +78,151 @@ const CadastroMain: React.FC = () => {
               color: theme.palette.primary.main,
             }}
           >
-            Cadastros
+            Configurações
           </Typography>
           
           <Typography 
             variant="body1" 
             color="text.secondary"
           >
-            Gerencie os bancos e configurações do sistema
+            Gerencie as configurações e cadastros do sistema
           </Typography>
         </Box>
 
+        {/* Grid de Opções */}
+        <Box sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { 
+            xs: '1fr', 
+            sm: 'repeat(2, 1fr)', 
+            md: 'repeat(3, 1fr)' 
+          },
+          gap: 3,
+          maxWidth: 'lg',
+          mx: 'auto',
+        }}>
+          {configOptions.map((option) => (
+            <Card 
+              key={option.id}
+              sx={{ 
+                height: '100%',
+                transition: 'all 0.3s ease',
+                opacity: option.disabled ? 0.6 : 1,
+                '&:hover': {
+                  transform: option.disabled ? 'none' : 'translateY(-4px)',
+                  boxShadow: option.disabled ? 1 : 4,
+                },
+              }}
+            >
+              <CardActionArea
+                onClick={() => handleSectionClick(option.id)}
+                disabled={option.disabled}
+                sx={{ 
+                  height: '100%',
+                  p: 3,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                }}
+              >
+                <Box sx={{ mb: 2 }}>
+                  {option.icon}
+                </Box>
+                
+                <Typography 
+                  variant="h6" 
+                  component="h2" 
+                  gutterBottom
+                  sx={{ fontWeight: 600 }}
+                >
+                  {option.title}
+                </Typography>
+                
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
+                  {option.description}
+                </Typography>
+
+                {option.disabled && (
+                  <Chip 
+                    label="Em breve" 
+                    size="small" 
+                    color="default" 
+                    variant="outlined"
+                  />
+                )}
+              </CardActionArea>
+            </Card>
+          ))}
+        </Box>
+      </Box>
+    </Fade>
+  );
+
+  const renderSection = () => {
+    switch (currentSection) {
+      case 'bancos':
+        return <CadastroBancos />;
+      case 'usuarios':
+        return (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <Typography variant="h5" gutterBottom>
+              Usuários
+            </Typography>
+            <Typography color="text.secondary">
+              Funcionalidade em desenvolvimento
+            </Typography>
+          </Box>
+        );
+      case 'sistema':
+        return (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <Typography variant="h5" gutterBottom>
+              Configurações do Sistema
+            </Typography>
+            <Typography color="text.secondary">
+              Funcionalidade em desenvolvimento
+            </Typography>
+          </Box>
+        );
+      default:
+        return renderMenu();
+    }
+  };
+
+  return (
+    <MainLayout>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        {/* Breadcrumb */}
+        {currentSection !== 'menu' && (
+          <Box sx={{ mb: 3 }}>
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                cursor: 'pointer',
+                color: theme.palette.primary.main,
+                '&:hover': {
+                  textDecoration: 'underline',
+                },
+              }}
+              onClick={() => handleSectionClick('menu')}
+            >
+              <SettingsIcon fontSize="small" />
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                Configurações
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
         {/* Conteúdo */}
-        <CadastroBancos />
+        {renderSection()}
       </Container>
     </MainLayout>
   );

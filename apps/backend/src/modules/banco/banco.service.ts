@@ -14,7 +14,19 @@ export class BancoService{
     }
 
     async create(createBancoDto: BancoDTO): Promise<Banco> {
-        return this.bancoModel.create(createBancoDto as any);
+        // Processa o campo produtos: converte string para array se necessário
+        const bancoData: any = { ...createBancoDto };
+        
+        if (bancoData.produtos && typeof bancoData.produtos === 'string') {
+            // Se produtos vier como string (ex: "Pagamentos, DDA, Extrato"), converte para array
+            if (bancoData.produtos.trim()) {
+                bancoData.produtos = bancoData.produtos.split(',').map((p: string) => p.trim());
+            } else {
+                bancoData.produtos = [];
+            }
+        }
+        
+        return this.bancoModel.create(bancoData);
     }
 
     async update(id: number, updateBancoDto: BancoDTO): Promise<Banco> {
@@ -22,7 +34,20 @@ export class BancoService{
         if (!banco) {
             throw new Error('Banco não encontrado.');
         }
-        return banco.update(updateBancoDto as any);
+        
+        // Processa o campo produtos: converte string para array se necessário
+        const bancoData: any = { ...updateBancoDto };
+        
+        if (bancoData.produtos && typeof bancoData.produtos === 'string') {
+            // Se produtos vier como string (ex: "Pagamentos, DDA, Extrato"), converte para array
+            if (bancoData.produtos.trim()) {
+                bancoData.produtos = bancoData.produtos.split(',').map((p: string) => p.trim());
+            } else {
+                bancoData.produtos = [];
+            }
+        }
+        
+        return banco.update(bancoData);
     }
 
     async delete(id: number): Promise<string> {

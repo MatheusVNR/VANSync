@@ -26,6 +26,7 @@ import {
   KeyboardArrowLeft,
   KeyboardArrowRight,
   Check as CheckIcon,
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import Passo1BancoSelection from '../../components/Wizard/Passos/Passo1BancoSelection';
 import Passo2ProdutoSelection from '../../components/Wizard/Passos/Passo2ProdutoSelection';
@@ -353,7 +354,7 @@ const WizardCartaVan: React.FC = () => {
           solicitacoesCriadas++;
           console.log(`✅ Solicitação criada para ${produto}:`, response.id);
 
-          // 4. Enviar email com PDF anexado
+          // 4. Enviar email com PDF anexado (opcional - pode ser feito pelo admin)
           const emailResult = await solicitacaoService.sendCartasEmail(response.id);
           if (emailResult.success) {
             emailsEnviados++;
@@ -362,9 +363,8 @@ const WizardCartaVan: React.FC = () => {
             console.warn(`⚠️ Falha no email para ${produto}:`, emailResult.message);
           }
 
-          // 5. Aprovar solicitação
-          await solicitacaoService.finalizarSolicitacao(response.id);
-          console.log(`✅ Solicitação aprovada para ${produto}`);
+          // 5. Solicitação criada com status em_aberto - aprovação será feita pelo painel admin
+          console.log(`✅ Solicitação criada com status em_aberto para ${produto}`);
 
           resultados.push({
             produto,
@@ -393,18 +393,24 @@ const WizardCartaVan: React.FC = () => {
       // Preparar mensagem de sucesso
       const mensagem = [
         `🎉 Processamento concluído com sucesso!`,
-        `🔗 ${integracoesZapier} integração(ões) Zapier realizada(s)`,
-        `📋 ${solicitacoesCriadas} solicitação(ões) criada(s) no sistema`,
-        `📧 ${emailsEnviados} email(s) enviado(s)`,
-        `✅ ${sucessos.length} de ${selectedProducts.length} produto(s) processado(s) com sucesso`
+        ``,
+        `📊 Resumo:`,
+        `• ${integracoesZapier} integração(ões) Zapier realizada(s)`,
+        `• ${solicitacoesCriadas} solicitação(ões) criada(s) com status em_aberto`,
+        `• ${emailsEnviados} email(s) enviado(s)`,
+        `• ${sucessos.length} de ${selectedProducts.length} produto(s) processado(s) com sucesso`,
+        ``,
+        `📝 Próximos passos:`,
+        `As solicitações serão revisadas e aprovadas pelo painel administrativo.`,
+        `Você receberá uma confirmação quando as cartas forem aprovadas.`
       ].join('\n');
 
       setSuccess(mensagem);
       
-      // Redirecionar após 5 segundos
-      setTimeout(() => {
-        navigate('/menu');
-      }, 5000);
+      // Não redirecionar automaticamente - usuário decide quando sair
+      // setTimeout(() => {
+      //   navigate('/menu');
+      // }, 5000);
       
     } catch (err: any) {
       console.error('❌ Erro ao processar solicitações:', err);
@@ -675,7 +681,45 @@ const WizardCartaVan: React.FC = () => {
         </Container>
       </Box>
 
-      {/* Snackbars para feedback */}
+      {/* Modal de sucesso */}
+      <Dialog 
+        open={!!success} 
+        onClose={() => setSuccess('')}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          color: theme.palette.success.main 
+        }}>
+          <CheckCircleIcon color="success" />
+          Processamento Concluído!
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ whiteSpace: 'pre-line' }}>
+            {success}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSuccess('')} color="inherit">
+            Fechar
+          </Button>
+          <Button 
+            onClick={() => {
+              setSuccess('');
+              navigate('/menu');
+            }} 
+            variant="contained" 
+            color="primary"
+          >
+            Voltar ao Menu
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar para erros */}
       <Snackbar
         open={!!error}
         autoHideDuration={6000}
@@ -683,16 +727,6 @@ const WizardCartaVan: React.FC = () => {
       >
         <Alert severity="error" onClose={() => setError('')}>
           {error}
-        </Alert>
-      </Snackbar>
-
-      <Snackbar
-        open={!!success}
-        autoHideDuration={4000}
-        onClose={() => setSuccess('')}
-      >
-        <Alert severity="success" onClose={() => setSuccess('')}>
-          {success}
         </Alert>
       </Snackbar>
     </Box>
