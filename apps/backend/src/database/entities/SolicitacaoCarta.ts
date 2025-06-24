@@ -6,8 +6,7 @@ export enum StatusSolicitacao {
   EM_ABERTO = 'em_aberto',
   EM_ANALISE = 'em_analise',
   APROVADA = 'aprovada',
-  REJEITADA = 'rejeitada',
-  FINALIZADA = 'finalizada'
+  REJEITADA = 'rejeitada'
 }
 
 export enum FornecedorVan {
@@ -18,7 +17,9 @@ export enum FornecedorVan {
 @Table({
   tableName: "solicitacoes_carta",
   schema: "public",
-  timestamps: true
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
 })
 export class SolicitacaoCarta extends Model {
   @PrimaryKey
@@ -37,16 +38,16 @@ export class SolicitacaoCarta extends Model {
   banco_id: number;
 
   @AllowNull(false)
-  @Column({ type: DataType.JSON })
-  produtos: string[];
+  @Column({ type: DataType.STRING(255) })
+  produto: string;
 
   @AllowNull(false)
   @Column({ type: DataType.JSON })
   dados_carta: {
     nome_empresa: string;
     cnpj_cliente: string;
-    cidade: string;
-    estado: string;
+    cidade?: string;
+    estado?: string;
     telefone: string;
     email: string;
     gerente_nome: string;
@@ -70,9 +71,6 @@ export class SolicitacaoCarta extends Model {
   })
   fornecedor_van: FornecedorVan;
 
-  @Column({ type: DataType.JSON, allowNull: true })
-  pdfs?: string[];
-
   @AllowNull(false)
   @Column({ 
     type: DataType.ENUM(...Object.values(StatusSolicitacao)),
@@ -82,6 +80,12 @@ export class SolicitacaoCarta extends Model {
 
   @Column({ type: DataType.TEXT, allowNull: true })
   observacoes?: string;
+
+  @Column({ type: DataType.DATE })
+  declare created_at: Date;
+
+  @Column({ type: DataType.DATE })
+  declare updated_at: Date;
 
   @BelongsTo(() => Usuario)
   usuario: Usuario;

@@ -14,15 +14,25 @@ export class ZapierService {
     arquivo: string; // base64
   }): Promise<any> {
     try {
-      const zapierWebhookUrl = this.configService.get<string>('ZAPIER_WEBHOOK_URL') || 'https://hooks.zapier.com/hooks/catch/21923307/2gwb3a6/';
+      const zapierWebhookUrl = this.configService.get<string>('ZAPIER_WEBHOOK_URL');
       
       if (!zapierWebhookUrl) {
         throw new HttpException('Webhook URL não configurada', HttpStatus.INTERNAL_SERVER_ERROR);
       }
 
-      const response = await axios.post(zapierWebhookUrl, dados, {
+      // FormData conforme especificado no vídeo de referência
+      const FormData = require('form-data');
+      const formData = new FormData();
+      
+      formData.append('cnpj_SH', dados.cnpj_sh);
+      formData.append('email', dados.email);
+      formData.append('CNPJ_cliente', dados.cnpj_cliente);
+      formData.append('Produto', dados.produto);
+      formData.append('arquivo', `data:application/pdf;base64,${dados.arquivo}`);
+
+      const response = await axios.post(zapierWebhookUrl, formData, {
         headers: {
-          'Content-Type': 'application/json',
+          ...formData.getHeaders(),
         },
         timeout: 30000, // 30 segundos
       });
@@ -30,7 +40,8 @@ export class ZapierService {
       if (response.status === 200) {
         return {
           success: true,
-          message: 'Dados enviados com sucesso para o Zapier'
+          message: 'Dados enviados com sucesso para o Zapier',
+          response: response.data
         };
       } else {
         throw new HttpException(

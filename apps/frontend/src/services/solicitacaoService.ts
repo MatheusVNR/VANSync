@@ -3,7 +3,7 @@ import axiosInstance from '../utils/axiosInstance';
 export interface SolicitacaoCarta {
   cnpj: string;
   banco_id: number;
-  produtos: string[];
+  produtos: string;
   fornecedor_van: string;
   cnpj_software_house: string;
   cnpj_emitente: string;
@@ -29,8 +29,6 @@ export interface SolicitacaoCarta {
 export interface CartaPDF {
   produto: string;
   pdf_url: string;
-  email_enviado: boolean;
-  zapier_integrado: boolean;
 }
 
 export interface SolicitacaoResponse {
@@ -96,6 +94,21 @@ class SolicitacaoService {
   async integrateZapier(solicitacaoId: number): Promise<{ success: boolean; message: string; integracoesEnviadas: number }> {
     try {
       const response = await axiosInstance.post(`/solicitacoes/${solicitacaoId}/zapier-integration`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao integrar com Zapier');
+    }
+  }
+
+  async integrateZapierDirect(data: {
+    cnpj_sh: string;
+    email: string;
+    cnpj_cliente: string;
+    produto: string;
+    arquivo: string; // base64
+  }): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await axiosInstance.post('/zapier/integrate', data);
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erro ao integrar com Zapier');

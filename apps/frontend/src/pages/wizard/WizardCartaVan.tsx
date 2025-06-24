@@ -16,6 +16,11 @@ import {
   Paper,
   MobileStepper,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import {
   KeyboardArrowLeft,
@@ -48,6 +53,7 @@ const WizardCartaVan: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [openConfirm, setOpenConfirm] = useState(false);
   
   const navigate = useNavigate();
   const theme = useTheme();
@@ -255,59 +261,154 @@ const WizardCartaVan: React.FC = () => {
       if (!currentUser?.cnpj) {
         throw new Error('Usuário não autenticado ou CNPJ não encontrado');
       }
-      
-      const solicitacao: SolicitacaoCarta = {
-        cnpj: currentUser.cnpj,
-        banco_id: selectedBank.codigo,
-        produtos: selectedProducts,
-        fornecedor_van: fornecedorVan,
-        cnpj_software_house: formData.cnpjSoftwareHouse,
-        cnpj_emitente: formData.cnpjEmitente,
-        razao_social: formData.razaoSocial,
-        nome_responsavel: formData.nomeResponsavel,
-        cargo_responsavel: formData.cargoResponsavel,
-        telefone: formData.telefone,
-        email: formData.email,
-        agencia: formData.agencia,
-        agencia_dv: formData.agenciaDV,
-        conta: formData.conta,
-        conta_dv: formData.contaDV,
-        convenio: formData.convenio,
-        cnab: formData.cnab,
-        nome_gerente: formData.nomeGerente,
-        telefone_gerente: formData.telefoneGerente,
-        email_gerente: formData.emailGerente,
-      };
 
-      // 1. Criar solicitação
-      const response = await solicitacaoService.create(solicitacao);
-      
-      // 2. Processar completo (emails + zapier + finalização)
-      const resultadoProcessamento = await solicitacaoService.processarCompleto(response.id);
-      
-      if (resultadoProcessamento.success) {
-        const { resultados } = resultadoProcessamento;
-        
-        const mensagem = [
-          `Solicitação criada com sucesso!`,
-          `📧 ${resultados.emails.emailsEnviados}/${selectedProducts.length} emails enviados`,
-          `🔗 ${resultados.zapier.integracoesEnviadas}/${selectedProducts.length} integrações Zapier realizadas`,
-          `🏁 Solicitação finalizada`
-        ].join('\n');
-        
-        setSuccess(mensagem);
-        
-        // Redirecionar após 5 segundos
-        setTimeout(() => {
-          navigate('/menu');
-        }, 5000);
-      } else {
-        throw new Error(resultadoProcessamento.message);
+      // Array para armazenar resultados de cada produto
+      const resultados = [];
+      let solicitacoesCriadas = 0;
+      let emailsEnviados = 0;
+      let integracoesZapier = 0;
+
+      // Processar cada produto separadamente
+      for (const produto of selectedProducts) {
+        try {
+          console.log(`🔄 Processando produto: ${produto}`);
+          
+          // 1. Gerar PDF para este produto (para enviar ao Zapier)
+          const pdfData = {
+            banco_id: selectedBank.codigo,
+            produtos: [produto], // Array com um produto
+            formData: {
+              razao_social: formData.razaoSocial,
+              cnpj_emitente: formData.cnpjEmitente,
+              nome_responsavel: formData.nomeResponsavel,
+              cargo_responsavel: formData.cargoResponsavel,
+              telefone: formData.telefone,
+              email: formData.email,
+              agencia: formData.agencia,
+              agencia_dv: formData.agenciaDV,
+              conta: formData.conta,
+              conta_dv: formData.contaDV,
+              convenio: formData.convenio,
+              cnab: formData.cnab,
+              nome_gerente: formData.nomeGerente,
+              telefone_gerente: formData.telefoneGerente,
+              email_gerente: formData.emailGerente,
+              cnpj_software_house: formData.cnpjSoftwareHouse
+            },
+            fornecedor_van: fornecedorVan
+          };
+
+          const pdfResult = await solicitacaoService.generatePreviewPDFs(pdfData);
+          if (!pdfResult.success || !pdfResult.pdfs || pdfResult.pdfs.length === 0) {
+            throw new Error(`Falha ao gerar PDF para ${produto}`);
+          }
+
+          const pdfCarta = pdfResult.pdfs.find(pdf => pdf.produto === produto);
+          if (!pdfCarta) {
+            throw new Error(`PDF não encontrado para ${produto}`);
+          }
+
+          // 2. Enviar para Zapier primeiro (com PDF em base64)
+          const zapierData = {
+            cnpj_sh: currentUser.cnpj,
+            email: formData.email,
+            cnpj_cliente: formData.cnpjEmitente,
+            produto: produto,
+            arquivo: pdfCarta.pdfBase64
+          };
+
+          const zapierResult = await solicitacaoService.integrateZapierDirect(zapierData);
+          if (!zapierResult.success) {
+            throw new Error(`Falha no Zapier para ${produto}: ${zapierResult.message}`);
+          }
+
+          integracoesZapier++;
+          console.log(`✅ Zapier integrado para ${produto}`);
+
+          // 3. Se Zapier foi bem-sucedido, criar solicitação no banco (status em aberto)
+          const solicitacao: SolicitacaoCarta = {
+            cnpj: currentUser.cnpj,
+            banco_id: selectedBank.codigo,
+            produtos: produto, // Apenas o produto como string
+            fornecedor_van: fornecedorVan,
+            cnpj_software_house: formData.cnpjSoftwareHouse,
+            cnpj_emitente: formData.cnpjEmitente,
+            razao_social: formData.razaoSocial,
+            nome_responsavel: formData.nomeResponsavel,
+            cargo_responsavel: formData.cargoResponsavel,
+            telefone: formData.telefone,
+            email: formData.email,
+            agencia: formData.agencia,
+            agencia_dv: formData.agenciaDV,
+            conta: formData.conta,
+            conta_dv: formData.contaDV,
+            convenio: formData.convenio,
+            cnab: formData.cnab,
+            nome_gerente: formData.nomeGerente,
+            telefone_gerente: formData.telefoneGerente,
+            email_gerente: formData.emailGerente,
+          };
+
+          const response = await solicitacaoService.create(solicitacao);
+          solicitacoesCriadas++;
+          console.log(`✅ Solicitação criada para ${produto}:`, response.id);
+
+          // 4. Enviar email com PDF anexado
+          const emailResult = await solicitacaoService.sendCartasEmail(response.id);
+          if (emailResult.success) {
+            emailsEnviados++;
+            console.log(`✅ Email enviado para ${produto}`);
+          } else {
+            console.warn(`⚠️ Falha no email para ${produto}:`, emailResult.message);
+          }
+
+          // 5. Aprovar solicitação
+          await solicitacaoService.finalizarSolicitacao(response.id);
+          console.log(`✅ Solicitação aprovada para ${produto}`);
+
+          resultados.push({
+            produto,
+            success: true,
+            solicitacaoId: response.id,
+            zapierSuccess: true,
+            emailSuccess: emailResult.success
+          });
+
+        } catch (error: any) {
+          console.error(`❌ Erro ao processar produto ${produto}:`, error);
+          resultados.push({
+            produto,
+            success: false,
+            error: error.message
+          });
+        }
       }
+
+      // Verificar se pelo menos uma solicitação foi processada com sucesso
+      const sucessos = resultados.filter(r => r.success);
+      if (sucessos.length === 0) {
+        throw new Error('Nenhuma solicitação foi processada com sucesso');
+      }
+
+      // Preparar mensagem de sucesso
+      const mensagem = [
+        `🎉 Processamento concluído com sucesso!`,
+        `🔗 ${integracoesZapier} integração(ões) Zapier realizada(s)`,
+        `📋 ${solicitacoesCriadas} solicitação(ões) criada(s) no sistema`,
+        `📧 ${emailsEnviados} email(s) enviado(s)`,
+        `✅ ${sucessos.length} de ${selectedProducts.length} produto(s) processado(s) com sucesso`
+      ].join('\n');
+
+      setSuccess(mensagem);
+      
+      // Redirecionar após 5 segundos
+      setTimeout(() => {
+        navigate('/menu');
+      }, 5000);
       
     } catch (err: any) {
-      console.error('❌ Erro ao processar solicitação:', err);
-      setError(err.message || 'Erro ao processar solicitação');
+      console.error('❌ Erro ao processar solicitações:', err);
+      setError(err.message || 'Erro ao processar solicitações');
     } finally {
       setLoading(false);
     }
@@ -328,26 +429,81 @@ const WizardCartaVan: React.FC = () => {
       >
         <Container maxWidth="lg" sx={{ py: 3 }}>
           {/* Header do Wizard */}
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography 
-              variant={isMobile ? 'h5' : 'h4'} 
-              component="h1" 
-              gutterBottom
-              sx={{ 
-                fontWeight: 700,
-                color: theme.palette.primary.main,
-              }}
-            >
-              Geração de Carta VAN
-            </Typography>
-            
-            <Typography 
-              variant="body1" 
-              color="text.secondary"
-            >
-              Preencha os dados para criar uma nova solicitação de carta
-            </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
+              mb: 4,
+              position: 'relative',
+              gap: isMobile ? 1 : 0,
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: isMobile ? 'flex-start' : 'flex-start' }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                sx={{
+                  minWidth: 140,
+                  height: 40,
+                  mb: isMobile ? 1 : 0,
+                  mr: isMobile ? 0 : 2,
+                  alignSelf: isMobile ? 'flex-start' : 'center',
+                }}
+                onClick={() => {
+                  const hasProgresso = !!selectedBank || selectedProducts.length > 0 || Object.keys(formData).length > 0;
+                  if (hasProgresso) {
+                    setOpenConfirm(true);
+                  } else {
+                    navigate('/menu');
+                  }
+                }}
+                startIcon={<KeyboardArrowLeft />}
+              >
+                Voltar ao menu
+              </Button>
+            </Box>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Typography 
+                variant={isMobile ? 'h5' : 'h4'} 
+                component="h1" 
+                gutterBottom
+                sx={{ 
+                  fontWeight: 700,
+                  color: theme.palette.primary.main,
+                  textAlign: 'center',
+                }}
+              >
+                Geração de Carta VAN
+              </Typography>
+              <Typography 
+                variant="body1" 
+                color="text.secondary"
+                sx={{ textAlign: 'center' }}
+              >
+                Preencha os dados para criar uma nova solicitação de carta
+              </Typography>
+            </Box>
           </Box>
+
+          {/* Modal de confirmação */}
+          <Dialog open={openConfirm} onClose={() => setOpenConfirm(false)}>
+            <DialogTitle>Deseja voltar ao menu?</DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                Se você voltar agora, todo o progresso do preenchimento será <b>perdido</b>.<br/>
+                Tem certeza que deseja sair do assistente de geração de carta?
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenConfirm(false)} color="inherit">
+                Cancelar
+              </Button>
+              <Button onClick={() => { setOpenConfirm(false); navigate('/menu'); }} color="primary" variant="contained" autoFocus>
+                Sim, voltar
+              </Button>
+            </DialogActions>
+          </Dialog>
 
           {/* Stepper - Desktop */}
           {!isMobile && (
@@ -467,62 +623,54 @@ const WizardCartaVan: React.FC = () => {
             boxShadow: theme.shadows[1],
             overflow: 'hidden',
           }}>
-            {wizard ? (
-              <StepWizard
-                instance={setWizard}
-                onStepChange={handleStepChange}
-                isLazyMount
-              >
-                <Passo1BancoSelection
-                  onNext={(bankData) => {
-                    setSelectedBank(bankData);
-                    handleStepComplete(WizardStepEnum.BankSelection);
-                    wizard.nextStep();
-                  }}
-                />
+            <StepWizard
+              instance={setWizard}
+              onStepChange={handleStepChange}
+              isLazyMount
+            >
+              <Passo1BancoSelection
+                onNext={(bankData) => {
+                  setSelectedBank(bankData);
+                  handleStepComplete(WizardStepEnum.BankSelection);
+                  wizard.nextStep();
+                }}
+              />
 
-                <Passo2ProdutoSelection
-                  bank={selectedBank}
-                  selectedProducts={selectedProducts}
-                  onProductToggle={handleProductToggle}
-                  onBack={() => handleBack(WizardStepEnum.BankSelection)}
-                  onNext={() => {
-                    setFornecedorVan(selectedBank?.padrao_van || 'nexxera');
-                    handleStepComplete(WizardStepEnum.ProductSelection);
-                    wizard.nextStep();
-                  }}
-                />
+              <Passo2ProdutoSelection
+                bank={selectedBank}
+                selectedProducts={selectedProducts}
+                onProductToggle={handleProductToggle}
+                onBack={() => handleBack(WizardStepEnum.BankSelection)}
+                onNext={() => {
+                  setFornecedorVan(selectedBank?.padrao_van || 'nexxera');
+                  handleStepComplete(WizardStepEnum.ProductSelection);
+                  wizard.nextStep();
+                }}
+              />
 
-                <Passo3CartaForm
-                  bank={selectedBank}
-                  selectedProducts={selectedProducts}
-                  formData={formData}
-                  fornecedorVan={fornecedorVan}
-                  onBack={() => handleBack(WizardStepEnum.ProductSelection)}
-                  onNext={(data) => {
-                    setFormData(data);
-                    handleStepComplete(WizardStepEnum.CartaForm);
-                    wizard.nextStep();
-                  }}
-                />
+              <Passo3CartaForm
+                bank={selectedBank}
+                selectedProducts={selectedProducts}
+                formData={formData}
+                fornecedorVan={fornecedorVan}
+                onBack={() => handleBack(WizardStepEnum.ProductSelection)}
+                onNext={(data) => {
+                  setFormData(data);
+                  handleStepComplete(WizardStepEnum.CartaForm);
+                  wizard.nextStep();
+                }}
+              />
 
-                <Passo4CartaPreview
-                  bank={selectedBank}
-                  selectedProducts={selectedProducts}
-                  formData={formData}
-                  fornecedorVan={fornecedorVan}
-                  onBack={() => handleBack(WizardStepEnum.CartaForm)}
-                  onConfirm={handleConfirm}
-                  loading={loading}
-                />
-              </StepWizard>
-            ) : (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body1" color="text.secondary">
-                  Carregando wizard...
-                </Typography>
-              </Box>
-            )}
+              <Passo4CartaPreview
+                bank={selectedBank}
+                selectedProducts={selectedProducts}
+                formData={formData}
+                fornecedorVan={fornecedorVan}
+                onBack={() => handleBack(WizardStepEnum.CartaForm)}
+                onConfirm={handleConfirm}
+                loading={loading}
+              />
+            </StepWizard>
           </Box>
         </Container>
       </Box>

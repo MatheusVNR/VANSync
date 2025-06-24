@@ -40,6 +40,10 @@ const Header: React.FC = () => {
         backgroundColor: '#0066CC', // Cor azul da Tecnospeed
         color: 'white',
         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        borderRadius: '0 !important',
+        '&.MuiAppBar-root': {
+          borderRadius: '0 !important',
+        },
       }}
     >
       <Toolbar sx={{ minHeight: 64, px: { xs: 2, md: 3 } }}>

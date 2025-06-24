@@ -77,7 +77,7 @@ export class SolicitacoesService {
     return this.solicitacaoModel.create({
       usuario_id: usuario.id,
       banco_id: dados.banco_id,
-      produtos: dados.produtos,
+      produto: dados.produtos,
       dados_carta: dados_carta,
       fornecedor_van: dados.fornecedor_van,
       status: StatusSolicitacao.EM_ABERTO
@@ -116,7 +116,7 @@ export class SolicitacoesService {
           attributes: ['codigo', 'nome']
         }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
   }
 
@@ -144,9 +144,9 @@ export class SolicitacoesService {
   async update(id: number, updateSolicitacaoDto: any): Promise<SolicitacaoCarta> {
     const solicitacao = await this.findOne(id);
     
-    // Não permitir edição se já foi finalizada
-    if (solicitacao.status === StatusSolicitacao.FINALIZADA) {
-      throw new HttpException('Solicitação finalizada não pode ser editada', HttpStatus.BAD_REQUEST);
+    // Não permitir edição se já foi aprovada
+    if (solicitacao.status === StatusSolicitacao.APROVADA) {
+      throw new HttpException('Solicitação aprovada não pode ser editada', HttpStatus.BAD_REQUEST);
     }
 
     await solicitacao.update(updateSolicitacaoDto);
@@ -191,20 +191,20 @@ export class SolicitacoesService {
       }
     }
 
-    const [total, emAberto, finalizadas] = await Promise.all([
+    const [total, emAberto, aprovadas] = await Promise.all([
       this.solicitacaoModel.count({ where }),
       this.solicitacaoModel.count({ 
         where: { ...where, status: StatusSolicitacao.EM_ABERTO }
       }),
       this.solicitacaoModel.count({ 
-        where: { ...where, status: StatusSolicitacao.FINALIZADA }
+        where: { ...where, status: StatusSolicitacao.APROVADA }
       })
     ]);
 
     return {
       total,
       em_aberto: emAberto,
-      finalizadas
+      aprovadas
     };
   }
 
@@ -339,58 +339,57 @@ export class SolicitacoesService {
         solicitacaoId,
         usuario: usuario.nome_empresa,
         banco: banco.nome,
-        produtos: solicitacao.produtos,
+        produto: solicitacao.produto,
         email: solicitacao.dados_carta.email
       });
 
       let emailsEnviados = 0;
       const resultados: Array<{ produto: string; status: string; erro?: string }> = [];
 
-      // Enviar email para cada produto
-      for (const produto of solicitacao.produtos) {
-        try {
-          console.log(`📧 Gerando PDF para produto: ${produto}`);
-          
-          // Gerar PDF para o produto específico
-          const pdfBuffer = await this.generatePdfForProduct(solicitacao, usuario, banco, produto);
-          
-          console.log(`📄 PDF gerado com sucesso para ${produto} (${pdfBuffer.length} bytes)`);
+      // Enviar email para o produto único
+      const produto = solicitacao.produto;
+      try {
+        console.log(`📧 Gerando PDF para produto: ${produto}`);
+        
+        // Gerar PDF para o produto específico
+        const pdfBuffer = await this.generatePdfForProduct(solicitacao, usuario, banco, produto);
+        
+        console.log(`📄 PDF gerado com sucesso para ${produto} (${pdfBuffer.length} bytes)`);
 
-          // Enviar email
-          const emailEnviado = await this.emailService.sendCartaEmail({
-            to: solicitacao.dados_carta.email,
-            produto: produto,
-            banco: banco.nome,
-            pdfBuffer: pdfBuffer,
-            dadosCliente: {
-              razao_social: solicitacao.dados_carta.nome_empresa,
-              cnpj_emitente: solicitacao.dados_carta.cnpj_cliente,
-              nome_responsavel: solicitacao.dados_carta.nome_empresa,
-              email: solicitacao.dados_carta.email
-            }
-          });
-
-          if (emailEnviado) {
-            emailsEnviados++;
-            resultados.push({ produto, status: 'enviado' });
-            console.log(`✅ Email enviado com sucesso para ${produto}`);
-          } else {
-            resultados.push({ produto, status: 'falha', erro: 'Transporter não inicializado' });
-            console.log(`❌ Falha ao enviar email para ${produto}`);
+        // Enviar email
+        const emailEnviado = await this.emailService.sendCartaEmail({
+          to: solicitacao.dados_carta.email,
+          produto: produto,
+          banco: banco.nome,
+          pdfBuffer: pdfBuffer,
+          dadosCliente: {
+            razao_social: solicitacao.dados_carta.nome_empresa,
+            cnpj_emitente: solicitacao.dados_carta.cnpj_cliente,
+            nome_responsavel: solicitacao.dados_carta.nome_empresa,
+            email: solicitacao.dados_carta.email
           }
+        });
 
-        } catch (error) {
-          console.error(`❌ Erro ao processar produto ${produto}:`, error.message);
-          resultados.push({ produto, status: 'falha', erro: error.message });
+        if (emailEnviado) {
+          emailsEnviados++;
+          resultados.push({ produto, status: 'enviado' });
+          console.log(`✅ Email enviado com sucesso para ${produto}`);
+        } else {
+          resultados.push({ produto, status: 'falha', erro: 'Transporter não inicializado' });
+          console.log(`❌ Falha ao enviar email para ${produto}`);
         }
+
+      } catch (error) {
+        console.error(`❌ Erro ao processar produto ${produto}:`, error.message);
+        resultados.push({ produto, status: 'falha', erro: error.message });
       }
 
-      console.log(`📊 Resumo do envio: ${emailsEnviados}/${solicitacao.produtos.length} emails enviados`);
+      console.log(`📊 Resumo do envio: ${emailsEnviados}/1 emails enviados`);
       console.log(`📋 Resultados detalhados:`, resultados);
 
       return {
         success: emailsEnviados > 0,
-        message: `${emailsEnviados} de ${solicitacao.produtos.length} emails enviados com sucesso`,
+        message: `${emailsEnviados} de 1 emails enviados com sucesso`,
         emailsEnviados
       };
 
@@ -419,65 +418,64 @@ export class SolicitacoesService {
         solicitacaoId,
         usuario: usuario.nome_empresa,
         banco: banco.nome,
-        produtos: solicitacao.produtos,
+        produto: solicitacao.produto,
         email: solicitacao.dados_carta.email
       });
 
       let integracoesEnviadas = 0;
       const resultados: Array<{ produto: string; status: string; erro?: string; messageId?: string }> = [];
 
-      // Enviar para Zapier para cada produto
-      for (const produto of solicitacao.produtos) {
-        try {
-          console.log(`🔗 Gerando PDF para integração Zapier - Produto: ${produto}`);
-          
-          // Gerar PDF para o produto específico
-          const pdfBuffer = await this.generatePdfForProduct(solicitacao, usuario, banco, produto);
-          const pdfBase64 = pdfBuffer.toString('base64');
-          
-          console.log(`📄 PDF gerado para Zapier - ${produto} (${pdfBuffer.length} bytes)`);
+      // Enviar para Zapier para o produto único
+      const produto = solicitacao.produto;
+      try {
+        console.log(`🔗 Gerando PDF para integração Zapier - Produto: ${produto}`);
+        
+        // Gerar PDF para o produto específico
+        const pdfBuffer = await this.generatePdfForProduct(solicitacao, usuario, banco, produto);
+        const pdfBase64 = pdfBuffer.toString('base64');
+        
+        console.log(`📄 PDF gerado para Zapier - ${produto} (${pdfBuffer.length} bytes)`);
 
-          // Preparar dados para Zapier
-          const dadosZapier = {
-            cnpj_sh: usuario.cnpj,
-            email: solicitacao.dados_carta.email,
-            cnpj_cliente: solicitacao.dados_carta.cnpj_cliente,
-            produto: produto,
-            arquivo: pdfBase64
-          };
+        // Preparar dados para Zapier
+        const dadosZapier = {
+          cnpj_sh: usuario.cnpj,
+          email: solicitacao.dados_carta.email,
+          cnpj_cliente: solicitacao.dados_carta.cnpj_cliente,
+          produto: produto,
+          arquivo: pdfBase64
+        };
 
-          console.log(`📤 Enviando dados para Zapier:`, {
-            cnpj_sh: dadosZapier.cnpj_sh,
-            email: dadosZapier.email,
-            cnpj_cliente: dadosZapier.cnpj_cliente,
-            produto: dadosZapier.produto,
-            arquivo_size: `${Math.round(pdfBase64.length / 1024)}KB`
-          });
+        console.log(`📤 Enviando dados para Zapier:`, {
+          cnpj_sh: dadosZapier.cnpj_sh,
+          email: dadosZapier.email,
+          cnpj_cliente: dadosZapier.cnpj_cliente,
+          produto: dadosZapier.produto,
+          arquivo_size: `${Math.round(pdfBase64.length / 1024)}KB`
+        });
 
-          // Enviar para Zapier
-          const resultadoZapier = await this.zapierService.enviarParaZapier(dadosZapier);
-          
-          if (resultadoZapier.success) {
-            integracoesEnviadas++;
-            resultados.push({ produto, status: 'enviado', messageId: resultadoZapier.message });
-            console.log(`✅ Integração Zapier bem-sucedida para ${produto}`);
-          } else {
-            resultados.push({ produto, status: 'falha', erro: resultadoZapier.message });
-            console.log(`❌ Falha na integração Zapier para ${produto}`);
-          }
-
-        } catch (error) {
-          console.error(`❌ Erro ao processar integração Zapier para ${produto}:`, error.message);
-          resultados.push({ produto, status: 'falha', erro: error.message });
+        // Enviar para Zapier
+        const resultadoZapier = await this.zapierService.enviarParaZapier(dadosZapier);
+        
+        if (resultadoZapier.success) {
+          integracoesEnviadas++;
+          resultados.push({ produto, status: 'enviado', messageId: resultadoZapier.message });
+          console.log(`✅ Integração Zapier bem-sucedida para ${produto}`);
+        } else {
+          resultados.push({ produto, status: 'falha', erro: resultadoZapier.message });
+          console.log(`❌ Falha na integração Zapier para ${produto}`);
         }
+
+      } catch (error) {
+        console.error(`❌ Erro ao processar integração Zapier para ${produto}:`, error.message);
+        resultados.push({ produto, status: 'falha', erro: error.message });
       }
 
-      console.log(`📊 Resumo da integração Zapier: ${integracoesEnviadas}/${solicitacao.produtos.length} integrações enviadas`);
+      console.log(`📊 Resumo da integração Zapier: ${integracoesEnviadas}/1 integrações enviadas`);
       console.log(`📋 Resultados detalhados:`, resultados);
 
       return {
         success: integracoesEnviadas > 0,
-        message: `${integracoesEnviadas} de ${solicitacao.produtos.length} integrações Zapier enviadas com sucesso`,
+        message: `${integracoesEnviadas} de 1 integrações Zapier enviadas com sucesso`,
         integracoesEnviadas
       };
 
@@ -496,26 +494,26 @@ export class SolicitacoesService {
       
       const solicitacao = await this.findOne(solicitacaoId);
       
-      if (solicitacao.status === StatusSolicitacao.FINALIZADA) {
-        console.log(`⚠️ Solicitação ${solicitacaoId} já está finalizada`);
+      if (solicitacao.status === StatusSolicitacao.APROVADA) {
+        console.log(`⚠️ Solicitação ${solicitacaoId} já está aprovada`);
         return solicitacao;
       }
 
-      // Atualizar status para finalizada
+      // Atualizar status para aprovada
       await solicitacao.update({
-        status: StatusSolicitacao.FINALIZADA,
+        status: StatusSolicitacao.APROVADA,
         observacoes: solicitacao.observacoes ? 
-          `${solicitacao.observacoes}\n\nFinalizada em: ${new Date().toISOString()}` :
-          `Finalizada em: ${new Date().toISOString()}`
+          `${solicitacao.observacoes}\n\nAprovada em: ${new Date().toISOString()}` :
+          `Aprovada em: ${new Date().toISOString()}`
       });
 
-      console.log(`✅ Solicitação ${solicitacaoId} finalizada com sucesso`);
+      console.log(`✅ Solicitação ${solicitacaoId} aprovada com sucesso`);
       
       return this.findOne(solicitacaoId);
     } catch (error) {
-      console.error(`❌ Erro ao finalizar solicitação ${solicitacaoId}:`, error.message);
+      console.error(`❌ Erro ao aprovar solicitação ${solicitacaoId}:`, error.message);
       throw new HttpException(
-        `Erro ao finalizar solicitação: ${error.message}`,
+        `Erro ao aprovar solicitação: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }

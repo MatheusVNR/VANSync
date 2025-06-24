@@ -1,29 +1,46 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get } from '@nestjs/common';
 import { ZapierService } from './zapier.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('zapier')
-@UseGuards(JwtAuthGuard)
 export class ZapierController {
   constructor(private readonly zapierService: ZapierService) {}
 
-  @Post('envio')
-  async enviarParaZapier(@Body() dados: {
+  @Post('integrate')
+  async integrate(@Body() data: {
     cnpj_sh: string;
     email: string;
     cnpj_cliente: string;
     produto: string;
-    arquivo: string;
+    arquivo: string; // base64
   }) {
-    return this.zapierService.enviarParaZapier(dados);
+    try {
+      const result = await this.zapierService.enviarParaZapier(data);
+      return {
+        success: true,
+        message: 'Dados enviados com sucesso para o Zapier',
+        response: result
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message
+      };
+    }
   }
 
-  @Post('teste')
-  async testarConexao() {
-    const resultado = await this.zapierService.testarConexao();
-    return {
-      conectado: resultado,
-      message: resultado ? 'Conexão OK' : 'Erro na conexão'
-    };
+  @Get('test')
+  async testConnection() {
+    try {
+      const isConnected = await this.zapierService.testarConexao();
+      return {
+        success: isConnected,
+        message: isConnected ? 'Conexão com Zapier OK' : 'Falha na conexão com Zapier'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message
+      };
+    }
   }
 } 
