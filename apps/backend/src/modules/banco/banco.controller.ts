@@ -12,6 +12,11 @@ export class BancoController {
         return this.bancoService.findAll();
     }
 
+    @Get(':id/can-delete')
+    async canDelete(@Param('id') id: number) {
+        return this.bancoService.canDelete(id);
+    }
+
     @Post()
     async create(@Body() createBancoDto: BancoDTO): Promise<Banco> {
         return this.bancoService.create(createBancoDto);

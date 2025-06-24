@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
 import { Banco } from "src/database/entities/Banco";
+import { SolicitacaoCarta } from "src/database/entities/SolicitacaoCarta";
 import { BancoDTO } from "./banco.dto";
 
 @Injectable()
@@ -50,7 +51,38 @@ export class BancoService{
         return banco.update(bancoData);
     }
 
+    async canDelete(id: number): Promise<{ canDelete: boolean; message?: string }> {
+        const banco = await this.bancoModel.findByPk(id, {
+            include: [{
+                model: SolicitacaoCarta,
+                as: 'solicitacoes'
+            }]
+        });
+        
+        if (!banco) {
+            throw new Error('Banco não encontrado.');
+        }
+
+        const hasSolicitacoes = banco.solicitacoes && banco.solicitacoes.length > 0;
+        
+        if (hasSolicitacoes) {
+            return {
+                canDelete: false,
+                message: 'Não é possível excluir um banco que possua solicitações.'
+            };
+        }
+
+        return { canDelete: true };
+    }
+
     async delete(id: number): Promise<string> {
+        // Verifica se pode excluir antes de tentar
+        const canDelete = await this.canDelete(id);
+        
+        if (!canDelete.canDelete) {
+            throw new Error(canDelete.message!);
+        }
+
         const banco = await this.bancoModel.findByPk(id);
         if (!banco) {
             throw new Error('Banco não encontrado.');

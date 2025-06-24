@@ -30,7 +30,7 @@ import {
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import { getBancos, createBanco, updateBanco, deleteBanco } from '../../services/bancoService';
+import { getBancos, createBanco, updateBanco, deleteBanco, canDeleteBanco } from '../../services/bancoService';
 import BancoForm from '../../components/cadastros/BancoForm';
 
 interface Banco {
@@ -134,8 +134,20 @@ const CadastroBancos: React.FC = () => {
   };
 
   const handleDeleteClick = (bank: Banco) => {
-    setBankToDelete(bank);
-    setDeleteDialogOpen(true);
+    canDeleteBanco(bank.codigo)
+      .then((canDelete) => {
+        if (!canDelete.canDelete) {
+          showSnackbar(canDelete.message || 'Não é possível excluir este banco.', 'error');
+          return;
+        }
+        
+        setBankToDelete(bank);
+        setDeleteDialogOpen(true);
+      })
+      .catch((error: any) => {
+        console.error('Erro ao verificar se pode excluir:', error);
+        showSnackbar('Erro ao verificar permissão de exclusão.', 'error');
+      });
   };
 
   const handleDeleteConfirm = async () => {

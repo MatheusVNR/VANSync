@@ -7,6 +7,11 @@ export const getBancos = async () => {
   return response.data;
 };
 
+export const canDeleteBanco = async (id: number): Promise<{ canDelete: boolean; message?: string }> => {
+  const response = await axiosInstance.get(`${URL_CONTROLLER}/${id}/can-delete`);
+  return response.data;
+};
+
 export const createBanco = async (bancoData: any) => {
   const response = await axiosInstance.post(URL_CONTROLLER, bancoData);
   return response.data;
