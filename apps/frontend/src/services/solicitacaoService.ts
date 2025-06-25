@@ -55,9 +55,9 @@ class SolicitacaoService {
     }
   }
 
-  async getAll(): Promise<SolicitacaoResponse[]> {
+  async getAll(params?: Record<string, any>): Promise<SolicitacaoResponse[]> {
     try {
-      const response = await axiosInstance.get('/solicitacoes');
+      const response = await axiosInstance.get('/solicitacoes', { params });
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erro ao buscar solicitações');

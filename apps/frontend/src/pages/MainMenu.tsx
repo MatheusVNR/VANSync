@@ -42,11 +42,11 @@ const MainMenu: React.FC = () => {
       showFor: ['ADMIN'],
     },
     {
-      title: 'Solicitações',
+      title: 'Minhas solicitações',
       description: 'Visualizar e gerenciar solicitações',
       icon: <DescriptionIcon sx={{ fontSize: 40 }} />,
       color: theme.palette.success.main,
-      onClick: () => navigate('/solicitacoes'),
+      onClick: () => navigate('/minhas-solicitacoes'),
       showFor: ['ADMIN', 'SH'],
     },
   ].filter(item => item.showFor.includes(currentUser?.tipo || ''));

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Container, 
   Typography, 
@@ -17,6 +18,7 @@ import {
   Business as BusinessIcon,
 } from '@mui/icons-material';
 import MainLayout from '../../components/MainLayout';
+import BackButton from '../../components/BackButton';
 import CadastroBancos from './CadastroBancos';
 import CadastroUsuarios from './CadastroUsuarios';
 
@@ -26,6 +28,7 @@ const CadastroMain: React.FC = () => {
   const [currentSection, setCurrentSection] = useState<ConfigSection>('menu');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const navigate = useNavigate();
 
   const configOptions = [
     {
@@ -55,29 +58,48 @@ const CadastroMain: React.FC = () => {
     }
   };
 
+  const handleBackToMenu = () => {
+    navigate('/menu');
+  };
+
   const renderMenu = () => (
     <Fade in={true} timeout={300}>
       <Box>
-        {/* Header */}
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography 
-            variant={isMobile ? 'h4' : 'h3'} 
-            component="h1" 
-            gutterBottom
-            sx={{ 
-              fontWeight: 700,
-              color: theme.palette.primary.main,
-            }}
-          >
-            Configurações
-          </Typography>
+        {/* Header com Botão Voltar */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          mb: 4,
+          gap: 2,
+        }}>
+          <BackButton 
+            onClick={handleBackToMenu}
+            variant="icon"
+          />
           
-          <Typography 
-            variant="body1" 
-            color="text.secondary"
-          >
-            Gerencie as configurações e cadastros do sistema
-          </Typography>
+          <Box sx={{ flex: 1, textAlign: 'center' }}>
+            <Typography 
+              variant={isMobile ? 'h4' : 'h3'} 
+              component="h1" 
+              gutterBottom
+              sx={{ 
+                fontWeight: 700,
+                color: theme.palette.primary.main,
+              }}
+            >
+              Configurações
+            </Typography>
+            
+            <Typography 
+              variant="body1" 
+              color="text.secondary"
+            >
+              Gerencie as configurações e cadastros do sistema
+            </Typography>
+          </Box>
+          
+          {/* Espaçador para centralizar o título */}
+          <Box sx={{ width: 48 }} />
         </Box>
 
         {/* Grid de Opções */}
@@ -146,9 +168,9 @@ const CadastroMain: React.FC = () => {
   const renderSection = () => {
     switch (currentSection) {
       case 'bancos':
-        return <CadastroBancos />;
+        return <CadastroBancos onBack={() => handleSectionClick('menu')} />;
       case 'usuarios':
-        return <CadastroUsuarios />;
+        return <CadastroUsuarios onBack={() => handleSectionClick('menu')} />;
       default:
         return renderMenu();
     }
@@ -157,30 +179,6 @@ const CadastroMain: React.FC = () => {
   return (
     <MainLayout>
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        {/* Breadcrumb */}
-        {currentSection !== 'menu' && (
-          <Box sx={{ mb: 3 }}>
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                cursor: 'pointer',
-                color: theme.palette.primary.main,
-                '&:hover': {
-                  textDecoration: 'underline',
-                },
-              }}
-              onClick={() => handleSectionClick('menu')}
-            >
-              <SettingsIcon fontSize="small" />
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                Configurações
-              </Typography>
-            </Box>
-          </Box>
-        )}
-
         {/* Conteúdo */}
         {renderSection()}
       </Container>

@@ -31,6 +31,7 @@ import {
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { getBancos, createBanco, updateBanco, deleteBanco, canDeleteBanco } from '../../services/bancoService';
+import BackButton from '../../components/BackButton';
 import BancoForm from '../../components/cadastros/BancoForm';
 
 interface Banco {
@@ -44,7 +45,11 @@ interface Banco {
   ativo?: boolean;
 }
 
-const CadastroBancos: React.FC = () => {
+interface CadastroBancosProps {
+  onBack?: () => void;
+}
+
+const CadastroBancos: React.FC<CadastroBancosProps> = ({ onBack }) => {
   const [bancos, setBanks] = useState<Banco[]>([]);
   const [editingBank, setEditingBank] = useState<Banco | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -200,16 +205,22 @@ const CadastroBancos: React.FC = () => {
           flexDirection: { xs: 'column', sm: 'row' },
           gap: 2,
         }}>
-          <Typography 
-            variant={isMobile ? 'h5' : 'h4'} 
-            component="h1"
-            sx={{ 
-              fontWeight: 700,
-              color: theme.palette.primary.main,
-            }}
-          >
-            Cadastro de Bancos
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <BackButton 
+              onClick={onBack}
+            />
+            
+            <Typography 
+              variant={isMobile ? 'h5' : 'h4'} 
+              component="h1"
+              sx={{ 
+                fontWeight: 700,
+                color: theme.palette.primary.main,
+              }}
+            >
+              Cadastro de Bancos
+            </Typography>
+          </Box>
           
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button

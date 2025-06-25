@@ -15,9 +15,9 @@ import {
 } from '@mui/material';
 import {
   Check as CheckIcon,
-  ArrowBack as ArrowBackIcon,
   Description as ProductIcon,
 } from '@mui/icons-material';
+import BackButton from '../../BackButton';
 
 interface Passo2ProdutoSelectionProps {
   bank: any;
@@ -213,19 +213,10 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
         gap: isMobile ? 2 : 0,
         mt: 4,
       }}>
-        <Button
-          variant="outlined"
-          startIcon={<ArrowBackIcon />}
+        <BackButton 
           onClick={onBack}
-          sx={{
-            px: 4,
-            py: 1.5,
-            borderRadius: 2,
-            minWidth: 120,
-          }}
-        >
-          Voltar
-        </Button>
+          text="Voltar"
+        />
 
         <Button
           variant="contained"

@@ -48,12 +48,23 @@ const Login: React.FC = () => {
     setError('');
     setLoading(true);
 
+    // Validação do CNPJ
+    const cnpjLimpo = cnpj.replace(/\D/g, '');
+    if (cnpjLimpo.length !== 14) {
+      setError('CNPJ inválido. O CNPJ deve conter 14 dígitos.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const cnpjLimpo = cnpj.replace(/\D/g, '');
       await authService.login(cnpjLimpo, token);
       navigate('/menu');
     } catch (err: any) {
-      setError(err.message || 'Erro ao fazer login');
+      if (err?.response?.data?.message === 'CNPJ ou Token inválidos' || err?.message === 'CNPJ ou Token inválidos') {
+        setError('Credenciais inválidas. Por favor, tente novamente.');
+      } else {
+        setError(err.message || 'Erro ao fazer login');
+      }
     } finally {
       setLoading(false);
     }
@@ -112,12 +123,6 @@ const Login: React.FC = () => {
             </Box>
 
             <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-              {error && (
-                <Alert severity="error" sx={{ mb: 3 }}>
-                  {error}
-                </Alert>
-              )}
-
               <TextField
                 fullWidth
                 label="CNPJ"
@@ -152,6 +157,12 @@ const Login: React.FC = () => {
                 }}
                 sx={{ mb: 3 }}
               />
+
+              {error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                  {error}
+                </Alert>
+              )}
 
               <Button
                 type="submit"

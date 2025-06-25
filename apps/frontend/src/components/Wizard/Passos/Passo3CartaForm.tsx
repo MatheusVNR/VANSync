@@ -17,10 +17,10 @@ import {
   Alert,
 } from '@mui/material';
 import {
-  ArrowBack as ArrowBackIcon,
   Business as BusinessIcon,
 } from '@mui/icons-material';
 import InputMasked from '../../InputMasked';
+import BackButton from '../../BackButton';
 import { authService } from '../../../services/authService';
 import { maskCNPJ } from '../../../utils/masks';
 import * as Yup from 'yup';
@@ -535,14 +535,10 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
 
         {/* Botões */}
         <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
-          <Button
-            variant="outlined"
+          <BackButton 
             onClick={onBack}
-            startIcon={<ArrowBackIcon />}
-            sx={{ minWidth: 120 }}
-          >
-            Voltar
-          </Button>
+            text="Voltar"
+          />
           
           <Button
             variant="contained"

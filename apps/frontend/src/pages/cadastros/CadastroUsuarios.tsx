@@ -32,9 +32,14 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material';
 import { getUsuarios, createUsuario, updateUsuario, deleteUsuario, canDeleteUsuario, Usuario, CreateUsuarioData } from '../../services/usuarioService';
+import BackButton from '../../components/BackButton';
 import UsuarioForm from '../../components/cadastros/UsuarioForm';
 
-const CadastroUsuarios: React.FC = () => {
+interface CadastroUsuariosProps {
+  onBack?: () => void;
+}
+
+const CadastroUsuarios: React.FC<CadastroUsuariosProps> = ({ onBack }) => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -199,16 +204,22 @@ const CadastroUsuarios: React.FC = () => {
           flexDirection: { xs: 'column', sm: 'row' },
           gap: 2,
         }}>
-          <Typography 
-            variant={isMobile ? 'h5' : 'h4'} 
-            component="h1"
-            sx={{ 
-              fontWeight: 700,
-              color: theme.palette.primary.main,
-            }}
-          >
-            Cadastro de Usuários
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <BackButton 
+              onClick={onBack}
+            />
+            
+            <Typography 
+              variant={isMobile ? 'h5' : 'h4'} 
+              component="h1"
+              sx={{ 
+                fontWeight: 700,
+                color: theme.palette.primary.main,
+              }}
+            >
+              Cadastro de Usuários
+            </Typography>
+          </Box>
           
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button

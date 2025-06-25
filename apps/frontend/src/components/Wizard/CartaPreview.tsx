@@ -21,6 +21,7 @@ import {
   ArrowBack as ArrowBackIcon,
   Send as SendIcon,
 } from '@mui/icons-material';
+import BackButton from '../BackButton';
 import PDFViewer from './PDFViewer';
 import { solicitacaoService } from '../../services/solicitacaoService';
 
@@ -393,19 +394,11 @@ ${'='.repeat(80)}
           flexWrap: 'wrap',
           gap: 2
         }}>
-          <Button
-            variant="outlined"
-            startIcon={<ArrowBackIcon />}
+          <BackButton 
             onClick={onBack}
+            text="Voltar"
             disabled={loading}
-            sx={{ 
-              borderRadius: 2,
-              px: 4,
-              py: 1.5
-            }}
-          >
-            Voltar
-          </Button>
+          />
           
           <Button
             variant="contained"
