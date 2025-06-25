@@ -35,6 +35,7 @@ import Passo4CartaPreview from '../../components/Wizard/Passos/Passo4CartaPrevie
 import Header from '../../components/Header';
 import { solicitacaoService, SolicitacaoCarta } from '../../services/solicitacaoService';
 import { authService } from '../../services/authService';
+import MainLayout from '../../components/MainLayout';
 
 enum WizardStepEnum {
   BankSelection,
@@ -421,19 +422,9 @@ const WizardCartaVan: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Header */}
-      <Header />
-
-      {/* Conteúdo principal */}
-      <Box 
-        sx={{ 
-          flex: 1,
-          marginTop: '64px', // Altura do header
-          backgroundColor: theme.palette.background.default,
-        }}
-      >
-        <Container maxWidth="lg" sx={{ py: 3 }}>
+    <MainLayout>
+      <Box sx={{ minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
+        <Container maxWidth="md" sx={{ py: isMobile ? 2 : 4 }}>
           {/* Header do Wizard */}
           <Box
             sx={{
@@ -729,7 +720,7 @@ const WizardCartaVan: React.FC = () => {
           {error}
         </Alert>
       </Snackbar>
-    </Box>
+    </MainLayout>
   );
 };
 
