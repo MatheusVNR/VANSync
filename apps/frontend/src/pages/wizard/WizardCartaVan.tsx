@@ -56,6 +56,8 @@ const WizardCartaVan: React.FC = () => {
   const [success, setSuccess] = useState<string>('');
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [openConfirm, setOpenConfirm] = useState(false);
+  const [bonusRestante, setBonusRestante] = useState<number | null>(null);
+  const [popupLimite, setPopupLimite] = useState(false);
   
   const navigate = useNavigate();
   const theme = useTheme();
@@ -83,6 +85,24 @@ const WizardCartaVan: React.FC = () => {
       step: WizardStepEnum.CartaPreview
     },
   ];
+
+  useEffect(() => {
+    const checkLimite = async () => {
+      const user = authService.getCurrentUser();
+      if (!user || !user.cnpj) return;
+      try {
+        const abertas = await solicitacaoService.getAbertasUsuario(user.cnpj);
+        const bonus = 5 - abertas.length;
+        setBonusRestante(bonus);
+        if (bonus <= 0) {
+          setPopupLimite(true);
+        }
+      } catch (err) {
+        setBonusRestante(null);
+      }
+    };
+    checkLimite();
+  }, []);
 
   const handleStepChange = (stats: any) => {
     try {
@@ -483,6 +503,19 @@ const WizardCartaVan: React.FC = () => {
             </Box>
           </Box>
 
+          {/* Popup de limite atingido */}
+          <Dialog open={popupLimite} onClose={() => navigate('/menu')} maxWidth="xs" fullWidth>
+            <DialogTitle>Limite de solicitações atingido</DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                Você atingiu o limite de 5 solicitações em aberto. Por favor, aguarde o processamento de alguma solicitação antes de criar novas cartas VAN.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => navigate('/menu')} variant="contained">Voltar ao menu</Button>
+            </DialogActions>
+          </Dialog>
+
           {/* Modal de confirmação */}
           <Dialog open={openConfirm} onClose={() => setOpenConfirm(false)}>
             <DialogTitle>Deseja voltar ao menu?</DialogTitle>
@@ -638,6 +671,7 @@ const WizardCartaVan: React.FC = () => {
                 selectedProducts={selectedProducts}
                 onProductToggle={handleProductToggle}
                 onBack={() => handleBack(WizardStepEnum.BankSelection)}
+                bonusRestante={bonusRestante}
                 onNext={() => {
                   setFornecedorVan(selectedBank?.padrao_van || 'nexxera');
                   handleStepComplete(WizardStepEnum.ProductSelection);

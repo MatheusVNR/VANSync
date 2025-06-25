@@ -12,6 +12,11 @@ import {
   FormControlLabel,
   Divider,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import {
   Check as CheckIcon,
@@ -25,6 +30,7 @@ interface Passo2ProdutoSelectionProps {
   onProductToggle: (produto: string) => void;
   onBack: () => void;
   onNext: () => void;
+  bonusRestante?: number | null;
 }
 
 const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
@@ -33,11 +39,17 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
   onProductToggle,
   onBack,
   onNext,
+  bonusRestante,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [popupLimite, setPopupLimite] = useState(false);
 
   const handleNext = () => {
+    if (bonusRestante !== undefined && bonusRestante !== null && selectedProducts.length > bonusRestante) {
+      setPopupLimite(true);
+      return;
+    }
     if (selectedProducts.length > 0) {
       onNext();
     }
@@ -240,6 +252,19 @@ const Passo2ProdutoSelection: React.FC<Passo2ProdutoSelectionProps> = ({
           Próximo ({selectedProducts.length} selecionado{selectedProducts.length !== 1 ? 's' : ''})
         </Button>
       </Box>
+
+      {/* Popup de limite de bônus */}
+      <Dialog open={popupLimite} onClose={() => setPopupLimite(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Limite de solicitações</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Você só pode selecionar até {bonusRestante} produto{bonusRestante === 1 ? '' : 's'} neste momento, pois já possui solicitações em aberto. Finalize ou aguarde o processamento de alguma solicitação para liberar mais.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPopupLimite(false)} variant="contained">OK</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

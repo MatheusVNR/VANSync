@@ -189,6 +189,16 @@ class SolicitacaoService {
       throw new Error(error.response?.data?.message || 'Erro ao atualizar status da solicitação');
     }
   }
+
+  async getAbertasUsuario(cnpj: string): Promise<any[]> {
+    try {
+      const response = await axiosInstance.get('/solicitacoes', { params: { cnpj } });
+      
+      return response.data.filter((s: any) => s.status !== 'aprovada' && s.status !== 'rejeitada');
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao buscar solicitações em aberto');
+    }
+  }
 }
 
 export const solicitacaoService = new SolicitacaoService(); 
