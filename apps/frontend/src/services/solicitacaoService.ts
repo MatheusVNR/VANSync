@@ -181,6 +181,14 @@ class SolicitacaoService {
       throw new Error(error.response?.data?.message || 'Erro ao gerar PDFs de preview');
     }
   }
+
+  async updateStatus(id: number, status: string): Promise<void> {
+    try {
+      await axiosInstance.patch(`/solicitacoes/${id}/status`, { status });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao atualizar status da solicitação');
+    }
+  }
 }
 
 export const solicitacaoService = new SolicitacaoService(); 

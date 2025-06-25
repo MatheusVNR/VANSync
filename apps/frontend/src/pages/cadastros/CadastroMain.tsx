@@ -87,7 +87,7 @@ const CadastroMain: React.FC = () => {
                 color: theme.palette.primary.main,
               }}
             >
-              Configurações
+              Cadastros
             </Typography>
             
             <Typography 

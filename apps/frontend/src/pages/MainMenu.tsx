@@ -41,53 +41,56 @@ const MainMenu: React.FC = () => {
       onClick: () => navigate('/cadastros'),
       showFor: ['ADMIN'],
     },
-    {
-      title: 'Minhas solicitações',
-      description: 'Visualizar e gerenciar solicitações',
-      icon: <DescriptionIcon sx={{ fontSize: 40 }} />,
-      color: theme.palette.success.main,
-      onClick: () => navigate('/minhas-solicitacoes'),
-      showFor: ['ADMIN', 'SH'],
-    },
+    // Botão de solicitações: nome e rota mudam conforme o tipo de usuário
+    currentUser?.tipo === 'ADMIN'
+      ? {
+          title: 'Gerenciar solicitações',
+          description: 'Visualizar e gerenciar todas as solicitações',
+          icon: <DescriptionIcon sx={{ fontSize: 40 }} />,
+          color: theme.palette.success.main,
+          onClick: () => navigate('/gerenciar-solicitacoes'),
+          showFor: ['ADMIN'],
+        }
+      : {
+          title: 'Minhas solicitações',
+          description: 'Visualizar e gerenciar solicitações',
+          icon: <DescriptionIcon sx={{ fontSize: 40 }} />,
+          color: theme.palette.success.main,
+          onClick: () => navigate('/minhas-solicitacoes'),
+          showFor: ['SH'],
+        },
   ].filter(item => item.showFor.includes(currentUser?.tipo || ''));
 
   return (
     <MainLayout>
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* Header */}
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
+        <Box sx={{ textAlign: 'center', mb: 8 }}>
           <Typography 
-            variant={isMobile ? 'h4' : 'h3'} 
+            variant={isMobile ? 'h3' : 'h2'} 
             component="h1" 
             gutterBottom
             sx={{ 
-              fontWeight: 700,
+              fontWeight: 800,
               color: theme.palette.primary.main,
+              letterSpacing: 1,
             }}
           >
-            Bem-vindo ao VANSync
+            Olá! Seja bem-vindo ao VANSync
           </Typography>
-          
           <Typography 
             variant="h6" 
             color="text.secondary"
             sx={{ mb: 2 }}
           >
-            {currentUser?.nome_empresa}
-          </Typography>
-          
-          <Typography 
-            variant="body1" 
-            color="text.secondary"
-          >
-            Selecione uma opção para continuar
+            Escolha uma das opções abaixo para começar
           </Typography>
         </Box>
 
         {/* Menu Cards */}
-        <Grid container spacing={3} justifyContent="center">
+        <Grid container spacing={6} justifyContent="center">
           {menuItems.map((item, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
+            <Grid item xs={12} sm={6} md={4} key={index} sx={{ display: 'flex', justifyContent: 'center' }}>
               <Card
                 sx={{
                   height: '100%',
@@ -99,6 +102,11 @@ const MainMenu: React.FC = () => {
                     boxShadow: theme.shadows[8],
                     borderColor: item.color,
                   },
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  py: 4,
                 }}
                 onClick={item.onClick}
               >
@@ -124,7 +132,6 @@ const MainMenu: React.FC = () => {
                   >
                     {item.icon}
                   </Box>
-                  
                   <Typography 
                     variant="h6" 
                     component="h2" 
@@ -133,7 +140,6 @@ const MainMenu: React.FC = () => {
                   >
                     {item.title}
                   </Typography>
-                  
                   <Typography 
                     variant="body2" 
                     color="text.secondary"
