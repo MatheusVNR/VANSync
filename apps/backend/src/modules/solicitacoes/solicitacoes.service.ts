@@ -74,14 +74,16 @@ export class SolicitacoesService {
       preferencia_contato_gerente: dados.preferencia_contato_gerente
     };
 
-    return this.solicitacaoModel.create({
+    const novaSolicitacao = await this.solicitacaoModel.create({
       usuario_id: usuario.id,
       banco_id: dados.banco_id,
-      produto: dados.produtos,
+      produto: dados.produto || dados.produtos,
       dados_carta: dados_carta,
       fornecedor_van: dados.fornecedor_van,
       status: StatusSolicitacao.EM_ABERTO
-    });
+    } as any);
+    console.log('✅ Solicitação criada:', novaSolicitacao.id, novaSolicitacao.produto);
+    return novaSolicitacao;
   }
 
   async findAll(query?: any): Promise<SolicitacaoCarta[]> {

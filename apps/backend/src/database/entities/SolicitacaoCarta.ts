@@ -1,4 +1,5 @@
 import { Table, Column, Model, PrimaryKey, DataType, AllowNull, AutoIncrement, ForeignKey, BelongsTo } from "sequelize-typescript";
+import { CreationOptional } from "sequelize";
 import { Usuario } from "./Usuario";
 import { Banco } from "./Banco";
 
@@ -21,75 +22,49 @@ export enum FornecedorVan {
   createdAt: 'created_at',
   updatedAt: 'updated_at'
 })
-export class SolicitacaoCarta extends Model {
+export class SolicitacaoCarta extends Model<SolicitacaoCarta> {
   @PrimaryKey
   @AutoIncrement
   @Column({ type: DataType.INTEGER })
-  declare id: number;
+  declare id: CreationOptional<number>;
 
   @ForeignKey(() => Usuario)
   @AllowNull(false)
   @Column({ type: DataType.INTEGER })
-  usuario_id: number;
+  declare usuario_id: number;
 
   @ForeignKey(() => Banco)
   @AllowNull(false)
   @Column({ type: DataType.INTEGER })
-  banco_id: number;
+  declare banco_id: number;
 
   @AllowNull(false)
   @Column({ type: DataType.STRING(255) })
-  produto: string;
+  declare produto: string;
 
   @AllowNull(false)
   @Column({ type: DataType.JSON })
-  dados_carta: {
-    nome_empresa: string;
-    cnpj_cliente: string;
-    cidade?: string;
-    estado?: string;
-    telefone: string;
-    email: string;
-    gerente_nome: string;
-    gerente_telefone: string;
-    gerente_email: string;
-    cnab: string;
-    padrao_van: string;
-    // Dados bancários
-    agencia?: string;
-    agencia_dv?: string;
-    conta?: string;
-    conta_dv?: string;
-    convenio?: string;
-    // Dados exclusivos Nexxera
-    preferencia_contato_gerente?: string;
-  };
+  declare dados_carta: any;
 
   @AllowNull(false)
   @Column({ 
     type: DataType.ENUM(...Object.values(FornecedorVan))
   })
-  fornecedor_van: FornecedorVan;
+  declare fornecedor_van: FornecedorVan;
 
   @AllowNull(false)
   @Column({ 
     type: DataType.ENUM(...Object.values(StatusSolicitacao)),
     defaultValue: StatusSolicitacao.EM_ABERTO
   })
-  status: StatusSolicitacao;
+  declare status: StatusSolicitacao;
 
   @Column({ type: DataType.TEXT, allowNull: true })
-  observacoes?: string;
-
-  @Column({ type: DataType.DATE })
-  declare created_at: Date;
-
-  @Column({ type: DataType.DATE })
-  declare updated_at: Date;
+  declare observacoes?: string;
 
   @BelongsTo(() => Usuario)
-  usuario: Usuario;
+  declare usuario: Usuario;
 
   @BelongsTo(() => Banco)
-  banco: Banco;
+  declare banco: Banco;
 } 

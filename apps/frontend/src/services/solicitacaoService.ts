@@ -3,7 +3,8 @@ import axiosInstance from '../utils/axiosInstance';
 export interface SolicitacaoCarta {
   cnpj: string;
   banco_id: number;
-  produtos: string;
+  produtos?: string;
+  produto?: string;
   fornecedor_van: string;
   cnpj_software_house: string;
   cnpj_emitente: string;

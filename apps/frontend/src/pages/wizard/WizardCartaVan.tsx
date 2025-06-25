@@ -351,7 +351,7 @@ const WizardCartaVan: React.FC = () => {
           const solicitacao: SolicitacaoCarta = {
             cnpj: currentUser.cnpj,
             banco_id: selectedBank.codigo,
-            produtos: produto, // Apenas o produto como string
+            produto: produto,
             fornecedor_van: fornecedorVan,
             cnpj_software_house: formData.cnpjSoftwareHouse,
             cnpj_emitente: formData.cnpjEmitente,
@@ -412,20 +412,13 @@ const WizardCartaVan: React.FC = () => {
       }
 
       // Preparar mensagem de sucesso
-      const mensagem = [
-        `🎉 Processamento concluído com sucesso!`,
-        ``,
-        `📊 Resumo:`,
-        `• ${integracoesZapier} integração(ões) Zapier realizada(s)`,
-        `• ${solicitacoesCriadas} solicitação(ões) criada(s) com status em_aberto`,
-        `• ${emailsEnviados} email(s) enviado(s)`,
-        `• ${sucessos.length} de ${selectedProducts.length} produto(s) processado(s) com sucesso`,
-        ``,
-        `📝 Próximos passos:`,
-        `As solicitações serão revisadas e aprovadas pelo painel administrativo.`,
-        `Você receberá uma confirmação quando as cartas forem aprovadas.`
-      ].join('\n');
-
+      const ids = resultados.filter(r => r.success && r.solicitacaoId).map(r => r.solicitacaoId);
+      let mensagem = '';
+      if (emailsEnviados > 0) {
+        mensagem = `Solicitação aberta com sucesso!\n\nIDs das solicitações no sistema: ${ids.join(', ')}\nA carta foi enviada para o e-mail: ${formData.email}`;
+      } else {
+        mensagem = `Solicitação aberta com sucesso!\n\nIDs das solicitações no sistema: ${ids.join(', ')}`;
+      }
       setSuccess(mensagem);
       
       // Não redirecionar automaticamente - usuário decide quando sair
@@ -728,9 +721,6 @@ const WizardCartaVan: React.FC = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSuccess('')} color="inherit">
-            Fechar
-          </Button>
           <Button 
             onClick={() => {
               setSuccess('');
