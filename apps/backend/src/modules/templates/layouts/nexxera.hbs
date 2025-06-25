@@ -24,21 +24,19 @@
             border: 1px solid #000;
             padding: 10px;
             margin-bottom: 20px;
+            position: relative;
+        }
+        .local-data-box {
+            width: 100%;
+            text-align: right;
+            margin-bottom: 5px;
+            font-size: 9pt;
         }
         .info-box-red {
             border: 1px solid #c00;
             padding: 10px;
             margin-bottom: 20px;
         }
-        .top-right-box {
-            float: right;
-            width: 180px;
-            text-align: center;
-            border: 1px solid #000;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        .clear { clear: both; }
         .section-title {
             font-weight: bold;
             margin-top: 15px;
@@ -87,20 +85,22 @@
             background-color: #ffff00;
             font-weight: bold;
         }
+        .email-inline {
+            display: inline-block;
+            margin-left: 5px;
+            vertical-align: middle;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="header-title">CARTA DE ABERTURA DE RELACIONAMENTO</div>
-    
-    <div class="top-right-box">
-        <b>Local e data:</b><br/>
+    <div class="local-data-box">
         {{dados.cidade}}, {{formatDate}}
     </div>
-    <div class="clear"></div>
-
     <div class="info-box">
-        <p style="text-align: center; margin: 20px 0;">Logo/Carimbo</p>
+        <div class="header-title">CARTA DE ABERTURA DE RELACIONAMENTO</div>
+        <p style="text-align: center; margin: 20px 0; font-weight:bold;">Logo/Carimbo</p>
         <p style="text-align: center; margin-bottom: 20px;">{{uppercase dados.razaoSocial}}</p>
         <div style="background-color: #eee; text-align:center; padding: 5px; border-top: 1px solid #000;">
             <b>:: CARTA CIRCULAR</b>
@@ -120,7 +120,7 @@
         <div><span class="data-label">Nome:</span><span>{{dados.nomeGerente}}</span></div>
         <div><span class="data-label">Telefone/Celular:</span><span>{{formatPhone dados.telefoneGerente}}</span></div>
     </div>
-    <div class="data-field"><span class="data-label">Email:</span><span>{{dados.emailGerente}}</span></div>
+    <div class="data-field"><span class="data-label">Email:</span><span class="email-inline">{{dados.emailGerente}}</span></div>
     <div>
         <span class="data-label">Preferência por contato:</span>
         <span class="checkbox-item">{{check dados.preferenciaContato 'Email'}} Email</span>

@@ -94,7 +94,11 @@ const CartaPreview: React.FC<CartaPreviewProps> = ({
             nome_gerente: formData.nomeGerente,
             telefone_gerente: formData.telefoneGerente,
             email_gerente: formData.emailGerente,
-            cnpj_software_house: formData.cnpjSoftwareHouse
+            cnpj_software_house: formData.cnpjSoftwareHouse,
+            // Dados específicos para Nexxera
+            cidade: formData.cidade || '',
+            estado: formData.estado || '',
+            preferencia_contato_gerente: formData.preferencia_contato_gerente || 'Email'
           },
           fornecedor_van: fornecedorVan
         };
@@ -155,6 +159,16 @@ const CartaPreview: React.FC<CartaPreviewProps> = ({
       });
     };
 
+    // Verificar se é Nexxera para incluir campos específicos
+    const isNexxera = fornecedorVan?.toLowerCase() === 'nexxera';
+    const dadosNexxera = isNexxera ? `
+DADOS ADICIONAIS (Nexxera):
+• Cidade: ${formData.cidade || 'N/A'}
+• Estado (UF): ${formData.estado || 'N/A'}
+• Preferência de Contato: ${formData.preferencia_contato_gerente || 'Email'}
+
+` : '';
+
     // Layout profissional baseado no padrão VAN
     return `
 ${selectedBank.nome.toUpperCase()}
@@ -193,7 +207,7 @@ DADOS DO GERENTE:
 • Telefone: ${formatPhone(formData.telefoneGerente)}
 • E-mail: ${formData.emailGerente}
 
-SOFTWARE HOUSE: ${formData.cnpjSoftwareHouse ? formatCNPJ(formData.cnpjSoftwareHouse) : 'N/A'}
+${dadosNexxera}SOFTWARE HOUSE: ${formData.cnpjSoftwareHouse ? formatCNPJ(formData.cnpjSoftwareHouse) : 'N/A'}
 
 ${'='.repeat(80)}
 
@@ -239,7 +253,7 @@ ${'='.repeat(80)}
               Gerando Cartas...
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Preparando {produtos.length} carta{produtos.length > 1 ? 's' : ''} com templates reais
+              Preparando {produtos.length} carta{produtos.length > 1 ? 's' : ''}
             </Typography>
           </Box>
         </Zoom>
@@ -397,7 +411,6 @@ ${'='.repeat(80)}
           <BackButton 
             onClick={onBack}
             text="Voltar"
-            disabled={loading}
           />
           
           <Button

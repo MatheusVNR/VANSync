@@ -300,7 +300,11 @@ export class SolicitacoesService {
         nomeGerente: formData.nome_gerente,
         telefoneGerente: formData.telefone_gerente,
         emailGerente: formData.email_gerente,
-        cnpjSoftwareHouse: formData.cnpj_software_house
+        cnpjSoftwareHouse: formData.cnpj_software_house,
+        // Dados específicos para Nexxera
+        cidade: formData.cidade || '',
+        estado: formData.estado || '',
+        preferenciaContato: formData.preferencia_contato_gerente || 'Email'
       },
       produtos: [produto],
       cnab: formData.cnab
@@ -543,7 +547,11 @@ export class SolicitacoesService {
         nomeGerente: solicitacao.dados_carta.gerente_nome,
         telefoneGerente: solicitacao.dados_carta.gerente_telefone,
         emailGerente: solicitacao.dados_carta.gerente_email,
-        cnpjSoftwareHouse: usuario.cnpj
+        cnpjSoftwareHouse: usuario.cnpj,
+        // Dados específicos para Nexxera
+        cidade: solicitacao.dados_carta.cidade || '',
+        estado: solicitacao.dados_carta.estado || '',
+        preferenciaContato: solicitacao.dados_carta.preferencia_contato_gerente || 'Email'
       },
       produtos: [produto],
       cnab: solicitacao.dados_carta.cnab
