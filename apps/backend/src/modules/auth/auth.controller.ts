@@ -11,30 +11,46 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() loginDto: { cnpj: string; token: string }) {
-    const { cnpj, token } = loginDto;
-    
-    if (!cnpj || !token) {
+    try {
+      return await this.authService.login(loginDto.cnpj, loginDto.token);
+    } catch (error) {
       throw new HttpException(
-        { message: 'CNPJ e Token são obrigatórios' },
-        HttpStatus.BAD_REQUEST
+        { message: error.message },
+        HttpStatus.UNAUTHORIZED
       );
     }
-
-    return this.authService.login(cnpj, token);
   }
 
   @Post('refresh')
   async refresh(@Body() refreshDto: { refreshToken: string }) {
-    const { refreshToken } = refreshDto;
-    
-    if (!refreshToken) {
+    try {
+      return await this.authService.refresh(refreshDto.refreshToken);
+    } catch (error) {
       throw new HttpException(
-        { message: 'Refresh token é obrigatório' },
-        HttpStatus.BAD_REQUEST
+        { message: error.message },
+        HttpStatus.UNAUTHORIZED
       );
     }
+  }
 
-    return this.authService.refresh(refreshToken);
+  @Post('validate')
+  async validateToken(@Body() validateDto: { token: string }) {
+    try {
+      const isValid = this.authService.isTokenValid(validateDto.token);
+      const isExpiringSoon = this.authService.isTokenExpiringSoon(validateDto.token);
+      const tokenInfo = this.authService.getTokenInfo(validateDto.token);
+      
+      return {
+        valid: isValid,
+        expiringSoon: isExpiringSoon,
+        info: tokenInfo
+      };
+    } catch (error) {
+      throw new HttpException(
+        { message: 'Token inválido' },
+        HttpStatus.UNAUTHORIZED
+      );
+    }
   }
 
   @Get('test-users')

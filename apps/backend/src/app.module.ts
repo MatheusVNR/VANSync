@@ -13,6 +13,8 @@ import { RedisModule } from './modules/redis/redis.module';
 import { TemplatesModule } from './modules/templates/templates.module';
 import { PdfModule } from './modules/pdf/pdf.module';
 import { EmailModule } from './modules/email/email.module';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { TokenRefreshInterceptor } from './modules/auth/token-refresh.interceptor';
 
 @Module({
   imports: [
@@ -29,6 +31,12 @@ import { EmailModule } from './modules/email/email.module';
     EmailModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TokenRefreshInterceptor,
+    },
+  ],
 })
 export class AppModule {}

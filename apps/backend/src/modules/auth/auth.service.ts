@@ -96,4 +96,47 @@ export class AuthService {
     const usuario = await this.usuariosService.findOne(payload.sub);
     return usuario;
   }
+
+  /**
+   * Verifica se o token está próximo de expirar (últimos 2 minutos)
+   */
+  isTokenExpiringSoon(token: string): boolean {
+    try {
+      const payload = this.jwtService.decode(token) as any;
+      if (!payload || !payload.exp) {
+        return false;
+      }
+
+      const now = Math.floor(Date.now() / 1000);
+      const timeUntilExpiry = payload.exp - now;
+      
+      // Considera "próximo de expirar" se faltar menos de 2 minutos
+      return timeUntilExpiry < 120;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Verifica se o token ainda é válido
+   */
+  isTokenValid(token: string): boolean {
+    try {
+      this.jwtService.verify(token);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Obtém informações do token sem verificar assinatura
+   */
+  getTokenInfo(token: string): any {
+    try {
+      return this.jwtService.decode(token);
+    } catch (error) {
+      return null;
+    }
+  }
 }

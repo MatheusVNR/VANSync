@@ -6,6 +6,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 import { JwtStrategy } from './jwt.strategy';
+import { TokenRefreshInterceptor } from './token-refresh.interceptor';
 
 @Module({
   imports: [
@@ -20,8 +21,8 @@ import { JwtStrategy } from './jwt.strategy';
     }),
     UsuariosModule,
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, TokenRefreshInterceptor],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, TokenRefreshInterceptor],
 })
 export class AuthModule {}
