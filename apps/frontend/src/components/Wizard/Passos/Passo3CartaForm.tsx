@@ -9,12 +9,12 @@ import {
   FormControl,
   InputLabel,
   useTheme,
-  useMediaQuery,
   Card,
   CardContent,
   Chip,
   Divider,
   Alert,
+  Snackbar,
 } from '@mui/material';
 import {
   Business as BusinessIcon,
@@ -22,7 +22,6 @@ import {
 import InputMasked from '../../InputMasked';
 import BackButton from '../../BackButton';
 import { authService } from '../../../services/authService';
-import { maskCNPJ } from '../../../utils/masks';
 import * as Yup from 'yup';
 
 interface Passo3CartaFormProps {
@@ -62,7 +61,7 @@ const validationSchema = (fornecedorVan: string) => Yup.object({
   nomeResponsavel: Yup.string().required('Nome do responsável é obrigatório'),
   cargoResponsavel: Yup.string().required('Cargo do responsável é obrigatório'),
   telefone: Yup.string().required('Telefone é obrigatório'),
-  email: Yup.string().required('Email é obrigatório'),
+  email: Yup.string().email('Email inválido').required('Email é obrigatório'),
   agencia: Yup.string().required('Agência é obrigatória'),
   conta: Yup.string().required('Conta é obrigatória'),
   convenio: Yup.string().required('Convênio é obrigatório'),
@@ -70,7 +69,7 @@ const validationSchema = (fornecedorVan: string) => Yup.object({
   fornecedorVan: Yup.string().required('Fornecedor VAN é obrigatório'),
   nomeGerente: Yup.string().required('Nome do gerente é obrigatório'),
   telefoneGerente: Yup.string().required('Telefone do gerente é obrigatório'),
-  emailGerente: Yup.string().required('Email do gerente é obrigatório'),
+  emailGerente: Yup.string().email('Email do gerente inválido').required('Email do gerente é obrigatório'),
   cidade: fornecedorVan?.toLowerCase() === 'nexxera' 
     ? Yup.string().required('Cidade é obrigatória para Nexxera')
     : Yup.string().optional(),
@@ -117,8 +116,9 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
   });
 
   const [errors, setErrors] = useState<any>({});
+  const [showValidationAlert, setShowValidationAlert] = useState(false);
+  const [validationMessage, setValidationMessage] = useState('');
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Obter CNABs disponíveis para o banco
   const getCNABOptions = () => {
@@ -143,39 +143,60 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
     }
   };
 
-  const validateForm = () => {
-    const newErrors: any = {};
-
-    if (!form.cnpjEmitente) newErrors.cnpjEmitente = 'CNPJ do emitente é obrigatório';
-    if (!form.razaoSocial) newErrors.razaoSocial = 'Razão social é obrigatória';
-    if (!form.nomeResponsavel) newErrors.nomeResponsavel = 'Nome do responsável é obrigatório';
-    if (!form.cargoResponsavel) newErrors.cargoResponsavel = 'Cargo do responsável é obrigatório';
-    if (!form.telefone) newErrors.telefone = 'Telefone é obrigatório';
-    if (!form.email) newErrors.email = 'Email é obrigatório';
-    if (!form.agencia) newErrors.agencia = 'Agência é obrigatória';
-    if (!form.conta) newErrors.conta = 'Conta é obrigatória';
-    if (!form.convenio) newErrors.convenio = 'Convênio é obrigatório';
-    if (!form.cnab) newErrors.cnab = 'CNAB é obrigatório';
-    if (!form.fornecedorVan) newErrors.fornecedorVan = 'Fornecedor VAN é obrigatório';
-    if (!form.nomeGerente) newErrors.nomeGerente = 'Nome do gerente é obrigatório';
-    if (!form.telefoneGerente) newErrors.telefoneGerente = 'Telefone do gerente é obrigatório';
-    if (!form.emailGerente) newErrors.emailGerente = 'Email do gerente é obrigatório';
-    
-    // Validação dinâmica para Nexxera
-    if (form.fornecedorVan?.toLowerCase() === 'nexxera') {
-      if (!form.cidade) newErrors.cidade = 'Cidade é obrigatória para Nexxera';
-      if (!form.estado) newErrors.estado = 'UF é obrigatória para Nexxera';
-      if (!form.preferencia_contato_gerente) newErrors.preferencia_contato_gerente = 'Preferência de contato é obrigatória para Nexxera';
+  const validateForm = async () => {
+    try {
+      // Usar Yup para validação mais robusta
+      await validationSchema(form.fornecedorVan).validate(form, { abortEarly: false });
+      setErrors({});
+      return true;
+    } catch (validationError: any) {
+      const newErrors: any = {};
+      
+      if (validationError.inner) {
+        validationError.inner.forEach((error: any) => {
+          newErrors[error.path] = error.message;
+        });
+      }
+      
+      setErrors(newErrors);
+      return false;
     }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (validateForm()) {
+  const handleNext = async () => {
+    const isValid = await validateForm();
+    
+    if (isValid) {
       onNext(form);
+    } else {
+      // Contar quantos campos têm erro
+      const errorCount = Object.keys(errors).length;
+      const errorFields = Object.keys(errors);
+      
+      let message = '';
+      if (errorCount === 1) {
+        message = `Existe 1 campo inválido. Verifique: ${errorFields[0]}`;
+      } else if (errorCount <= 3) {
+        message = `Existem ${errorCount} campos inválidos. Verifique: ${errorFields.join(', ')}`;
+      } else {
+        message = `Existem ${errorCount} campos inválidos. Por favor, verifique todos os campos obrigatórios.`;
+      }
+      
+      setValidationMessage(message);
+      setShowValidationAlert(true);
+      
+      // Scroll para o primeiro campo com erro
+      const firstErrorField = errorFields[0];
+      const errorElement = document.querySelector(`[name="${firstErrorField}"]`) || 
+                          document.querySelector(`[data-field="${firstErrorField}"]`);
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
+  };
+
+  const handleCloseAlert = () => {
+    setShowValidationAlert(false);
   };
 
   if (!bank) {
@@ -195,6 +216,22 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
       <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
         Preenchimento de Dados
       </Typography>
+
+      {/* Alert de validação */}
+      <Snackbar
+        open={showValidationAlert}
+        autoHideDuration={6000}
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseAlert} 
+          severity="warning" 
+          sx={{ width: '100%' }}
+        >
+          {validationMessage}
+        </Alert>
+      </Snackbar>
 
       {/* Resumo das Seleções */}
       <Card sx={{ mb: 3, backgroundColor: theme.palette.grey[50] }}>
@@ -250,6 +287,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               helperText={errors.cnpjEmitente}
               fullWidth
               placeholder="Inserir número do CNPJ"
+              data-field="cnpjEmitente"
             />
           </Box>
           <Box sx={{ flex: '1 1 300px', minWidth: 0 }}>
@@ -261,6 +299,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               helperText={errors.razaoSocial}
               fullWidth
               placeholder="Inserir a Razão Social"
+              name="razaoSocial"
             />
           </Box>
         </Box>
@@ -280,6 +319,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               helperText={errors.nomeResponsavel}
               fullWidth
               placeholder="Inserir nome do responsável pela empresa"
+              name="nomeResponsavel"
             />
           </Box>
           <Box sx={{ flex: '1 1 300px', minWidth: 0 }}>
@@ -291,6 +331,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               helperText={errors.cargoResponsavel}
               fullWidth
               placeholder="Inserir o cargo do responsável pela empresa"
+              name="cargoResponsavel"
             />
           </Box>
         </Box>
@@ -305,6 +346,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               helperText={errors.telefone}
               fullWidth
               placeholder="Inserir telefone do responsável pela empresa"
+              data-field="telefone"
             />
           </Box>
           <Box sx={{ flex: '1 1 300px', minWidth: 0 }}>
@@ -316,6 +358,8 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               helperText={errors.email}
               fullWidth
               placeholder="Inserir o e-mail do responsável pela empresa"
+              name="email"
+              type="email"
             />
           </Box>
         </Box>
@@ -336,6 +380,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               error={!!errors.agencia}
               helperText={errors.agencia}
               fullWidth
+              name="agencia"
             />
           </Box>
 
@@ -345,6 +390,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               value={form.agenciaDV}
               onChange={(e) => handleInputChange('agenciaDV', e.target.value)}
               fullWidth
+              name="agenciaDV"
             />
           </Box>
 
@@ -356,6 +402,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               error={!!errors.conta}
               helperText={errors.conta}
               fullWidth
+              name="conta"
             />
           </Box>
 
@@ -365,6 +412,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               value={form.contaDV}
               onChange={(e) => handleInputChange('contaDV', e.target.value)}
               fullWidth
+              name="contaDV"
             />
           </Box>
         </Box>
@@ -378,6 +426,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               error={!!errors.convenio}
               helperText={errors.convenio}
               fullWidth
+              name="convenio"
             />
           </Box>
 
@@ -393,6 +442,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
                     borderColor: errors.cnab ? theme.palette.error.main : undefined,
                   },
                 }}
+                name="cnab"
               >
                 <MenuItem value="">
                   <em>Selecione um CNAB</em>
@@ -432,6 +482,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
                     borderColor: errors.fornecedorVan ? theme.palette.error.main : undefined,
                   },
                 }}
+                name="fornecedorVan"
               >
                 <MenuItem value="">
                   <em>Selecione um fornecedor</em>
@@ -464,6 +515,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               error={!!errors.nomeGerente}
               helperText={errors.nomeGerente}
               fullWidth
+              name="nomeGerente"
             />
           </Box>
 
@@ -476,6 +528,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               error={!!errors.telefoneGerente}
               helperText={errors.telefoneGerente}
               fullWidth
+              data-field="telefoneGerente"
             />
           </Box>
         </Box>
@@ -489,6 +542,8 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
               error={!!errors.emailGerente}
               helperText={errors.emailGerente}
               fullWidth
+              name="emailGerente"
+              type="email"
             />
           </Box>
         </Box>
@@ -510,6 +565,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
                 error={!!errors.cidade}
                 helperText={errors.cidade}
                 placeholder="Digite a cidade"
+                name="cidade"
               />
               <TextField
                 fullWidth
@@ -520,9 +576,11 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
                 helperText={errors.estado}
                 inputProps={{ maxLength: 2 }}
                 placeholder="Digite a UF (ex: SP)"
+                name="estado"
               />
             </Box>
-            <FormControl fullWidth sx={{ mt: 2 }} error={!!errors.preferencia_contato_gerente}>
+            
+            <FormControl fullWidth error={!!errors.preferencia_contato_gerente}>
               <InputLabel>Preferência de Contato do Gerente *</InputLabel>
               <Select
                 value={form.preferencia_contato_gerente}
@@ -533,6 +591,7 @@ const Passo3CartaForm: React.FC<Passo3CartaFormProps> = ({
                     borderColor: errors.preferencia_contato_gerente ? theme.palette.error.main : undefined,
                   },
                 }}
+                name="preferencia_contato_gerente"
               >
                 <MenuItem value="">
                   <em>Selecione a preferência de contato</em>
