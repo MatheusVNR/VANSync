@@ -576,7 +576,7 @@ export class SolicitacoesService {
         // Preparar dados para Zapier
         const dadosZapier = {
           cnpj_sh: usuario.cnpj,
-          email: solicitacao.dados_carta.email,
+          email: usuario.email || "", // Email da software house
           cnpj_cliente: solicitacao.dados_carta.cnpj_cliente,
           produto: produto,
           arquivo: pdfBase64

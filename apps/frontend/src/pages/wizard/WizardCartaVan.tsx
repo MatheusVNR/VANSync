@@ -346,7 +346,7 @@ const WizardCartaVan: React.FC = () => {
           // 3. Enviar para Zapier usando o PDF do cache
           const zapierData = {
             cnpj_sh: currentUser.cnpj,
-            email: formData.email,
+            email: currentUser.email, // Email da software house
             cnpj_cliente: formData.cnpjEmitente,
             produto: produto,
             arquivo: pdfCarta.pdfBase64
