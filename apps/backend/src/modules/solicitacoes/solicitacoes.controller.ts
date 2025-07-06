@@ -153,10 +153,71 @@ export class SolicitacoesController {
     }
   }
 
-  @Post(':id/send-emails')
-  async sendCartasEmail(@Param('id') id: string) {
+  /**
+   * Novo endpoint para gerar preview PDF com cache
+   */
+  @Post('preview-pdf-with-cache')
+  async generatePreviewPdfWithCache(@Body() previewData: any) {
     try {
-      const resultado = await this.solicitacoesService.sendCartasEmail(+id);
+      console.log('🔄 Iniciando geração de preview PDF com cache');
+      console.log('📋 Dados recebidos:', JSON.stringify(previewData, null, 2));
+      
+      const { banco_id, produtos, formData, fornecedor_van } = previewData;
+      
+      console.log(`🏦 Banco ID: ${banco_id}`);
+      console.log(`📦 Produtos: ${produtos.join(', ')}`);
+      console.log(`🔧 Fornecedor VAN: ${fornecedor_van}`);
+      
+      const pdfs = await Promise.all(
+        produtos.map(async (produto: string, index: number) => {
+          console.log(`📄 Gerando PDF ${index + 1}/${produtos.length} para produto: ${produto}`);
+          
+          try {
+            const resultado = await this.solicitacoesService.generatePreviewPdfWithCache({
+              banco_id,
+              produto,
+              formData,
+              fornecedor_van
+            });
+            
+            console.log(`✅ PDF ${index + 1} gerado com sucesso (${resultado.pdfBase64.length} caracteres base64)`);
+            console.log(`🔑 Cache key: ${resultado.cacheKey}`);
+            
+            return {
+              produto,
+              pdfBase64: resultado.pdfBase64,
+              cacheKey: resultado.cacheKey,
+              titulo: `Carta de Solicitação - ${produto}`
+            };
+          } catch (error) {
+            console.error(`❌ Erro ao gerar PDF ${index + 1} para ${produto}:`, error.message);
+            throw error;
+          }
+        })
+      );
+      
+      console.log(`🎉 Todos os ${pdfs.length} PDFs gerados com sucesso`);
+      
+      return {
+        success: true,
+        pdfs
+      };
+    } catch (error) {
+      console.error('❌ Erro geral na geração de preview PDF com cache:', error.message);
+      console.error('Stack trace:', error.stack);
+      
+      return {
+        success: false,
+        message: error.message,
+        error: error
+      };
+    }
+  }
+
+  @Post(':id/send-emails')
+  async sendCartasEmail(@Param('id') id: string, @Body() body?: { cacheKeys?: string[] }) {
+    try {
+      const resultado = await this.solicitacoesService.sendCartasEmail(+id, body?.cacheKeys);
       return {
         success: resultado.success,
         message: resultado.message,
@@ -172,9 +233,9 @@ export class SolicitacoesController {
   }
 
   @Post(':id/zapier-integration')
-  async integrateZapier(@Param('id') id: string) {
+  async integrateZapier(@Param('id') id: string, @Body() body?: { cacheKeys?: string[] }) {
     try {
-      const resultado = await this.solicitacoesService.integrateZapier(+id);
+      const resultado = await this.solicitacoesService.integrateZapier(+id, body?.cacheKeys);
       return {
         success: resultado.success,
         message: resultado.message,
@@ -201,49 +262,65 @@ export class SolicitacoesController {
     } catch (error) {
       return {
         success: false,
-        message: error.message
+        message: error.message,
+        solicitacao: null
       };
     }
   }
 
+  /**
+   * Novo endpoint para processamento completo com cache
+   */
   @Post(':id/processar-completo')
-  async processarCompleto(@Param('id') id: string) {
+  async processarCompleto(@Param('id') id: string, @Body() body?: { cacheKeys?: string[] }) {
     try {
-      console.log(`🔄 Iniciando processamento completo da solicitação ${id}`);
-      
-      // 1. Enviar emails
-      console.log(`📧 Passo 1: Enviando emails...`);
-      const resultadoEmails = await this.solicitacoesService.sendCartasEmail(+id);
-      
-      // 2. Integrar com Zapier
-      console.log(`🔗 Passo 2: Integrando com Zapier...`);
-      const resultadoZapier = await this.solicitacoesService.integrateZapier(+id);
-      
-      // 3. Finalizar solicitação
-      console.log(`🏁 Passo 3: Finalizando solicitação...`);
-      const solicitacao = await this.solicitacoesService.finalizarSolicitacao(+id);
-      
-      console.log(`✅ Processamento completo finalizado para solicitação ${id}`);
-      
+      const resultado = await this.solicitacoesService.processarCompleto(+id, body?.cacheKeys);
       return {
-        success: true,
-        message: 'Processamento completo realizado com sucesso',
-        resultados: {
-          emails: resultadoEmails,
-          zapier: resultadoZapier,
-          finalizacao: {
-            success: true,
-            message: 'Solicitação finalizada'
-          }
-        },
-        solicitacao
+        success: resultado.success,
+        message: resultado.message,
+        resultados: resultado.resultados,
+        solicitacao: resultado.solicitacao
       };
     } catch (error) {
-      console.error(`❌ Erro no processamento completo da solicitação ${id}:`, error.message);
       return {
         success: false,
-        message: error.message
+        message: error.message,
+        resultados: {
+          emails: { success: false, message: error.message, emailsEnviados: 0 },
+          zapier: { success: false, message: error.message, integracoesEnviadas: 0 },
+          finalizacao: { success: false, message: error.message }
+        },
+        solicitacao: null
       };
+    }
+  }
+
+  /**
+   * Endpoint para recuperar PDF do cache
+   */
+  @Get('cache/:cacheKey')
+  async getPdfFromCache(@Param('cacheKey') cacheKey: string, @Res() res: Response) {
+    try {
+      const pdfBuffer = await this.solicitacoesService.getPdfFromCache(cacheKey);
+      
+      if (!pdfBuffer) {
+        return res.status(HttpStatus.NOT_FOUND).json({
+          message: 'PDF não encontrado no cache'
+        });
+      }
+      
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="carta-van-cache.pdf"`,
+        'Content-Length': pdfBuffer.length,
+      });
+      
+      res.send(pdfBuffer);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        message: 'Erro ao recuperar PDF do cache',
+        error: error.message,
+      });
     }
   }
 } 

@@ -42,6 +42,7 @@ interface Carta {
   conteudo: string;
   numero: number;
   pdfBase64?: string;
+  cacheKey?: string; // Cache key para reutilização
 }
 
 const CartaPreview: React.FC<CartaPreviewProps> = ({ 
@@ -103,8 +104,8 @@ const CartaPreview: React.FC<CartaPreviewProps> = ({
           fornecedor_van: fornecedorVan
         };
 
-        // Chamar o backend para gerar PDFs
-        const responseData = await solicitacaoService.generatePreviewPDFs(previewData);
+        // Chamar o backend para gerar PDFs com cache
+        const responseData = await solicitacaoService.generatePreviewPDFsWithCache(previewData);
         
         if (responseData.success && responseData.pdfs) {
           const cartasComPDFs = responseData.pdfs.map((pdfData, index) => ({
@@ -114,9 +115,11 @@ const CartaPreview: React.FC<CartaPreviewProps> = ({
             numero: index + 1,
             conteudo: generateCartaContent(pdfData.produto, formData, selectedBank),
             pdfBase64: pdfData.pdfBase64,
+            cacheKey: pdfData.cacheKey, // Armazenar cache key para uso posterior
           }));
           
           setCartas(cartasComPDFs);
+          console.log(`✅ PDFs gerados com cache. Cache keys:`, cartasComPDFs.map(c => c.cacheKey));
         } else {
           throw new Error(responseData.message || 'Erro ao gerar PDFs');
         }

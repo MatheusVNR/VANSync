@@ -204,13 +204,15 @@ export class SolicitacoesService {
     ]);
 
     return {
-      total,
-      em_aberto: emAberto,
-      aprovadas
+      total_solicitacoes: total,
+      solicitacoes_pendentes: emAberto,
+      solicitacoes_aprovadas: aprovadas
     };
   }
 
-  // Novos métodos para PDF e envio
+  /**
+   * Gera PDF para uma solicitação específica, reutilizando cache quando possível
+   */
   async generatePdf(solicitacaoId: number): Promise<Buffer> {
     const solicitacao = await this.findOne(solicitacaoId);
     const usuario = await this.usuarioModel.findByPk(solicitacao.usuario_id);
@@ -225,26 +227,24 @@ export class SolicitacoesService {
     return this.pdfService.generatePdf(solicitacaoId, data);
   }
 
+  /**
+   * Gera PDF em base64 para uma solicitação específica
+   */
   async generatePdfBase64(solicitacaoId: number): Promise<string> {
-    const solicitacao = await this.findOne(solicitacaoId);
-    const usuario = await this.usuarioModel.findByPk(solicitacao.usuario_id);
-    const banco = await this.bancoModel.findByPk(solicitacao.banco_id);
-
-    const data = {
-      ...solicitacao.toJSON(),
-      usuario,
-      banco,
-    };
-
-    return this.pdfService.generatePdfBase64(solicitacaoId, data);
+    const pdfBuffer = await this.generatePdf(solicitacaoId);
+    return pdfBuffer.toString('base64');
   }
 
+  /**
+   * Envia PDF para o cliente (método legado)
+   */
   async sendPdfToClient(solicitacaoId: number): Promise<void> {
-    // TODO: Implementar envio de email com PDF anexado
-    // Por enquanto, apenas gera o PDF
     await this.generatePdf(solicitacaoId);
   }
 
+  /**
+   * Limpa cache de PDFs
+   */
   async clearPdfCache(solicitacaoId?: number): Promise<void> {
     if (solicitacaoId) {
         const key = `pdf:${solicitacaoId}`;
@@ -255,6 +255,10 @@ export class SolicitacoesService {
     }
   }
 
+  /**
+   * Gera PDF de preview e cacheia para reutilização posterior
+   * Este método é usado no wizard para preview
+   */
   async generatePreviewPdf(data: {
     banco_id: number;
     produto: string;
@@ -316,10 +320,6 @@ export class SolicitacoesService {
     // Gerar PDF usando o serviço de PDF
     const pdfBuffer = await this.pdfService.generatePdfFromTemplate(padraoVan, templateData);
     
-    // TEMPORÁRIO: Usar método simples sem Puppeteer para testar
-    // console.log(`📄 Service: Usando método simples sem Puppeteer (teste)`);
-    // const pdfBuffer = await this.pdfService.generateSimplePdfFromTemplate(padraoVan, templateData);
-    
     console.log(`✅ Service: PDF gerado com sucesso (${pdfBuffer.length} bytes)`);
     
     // Retornar em base64
@@ -329,7 +329,109 @@ export class SolicitacoesService {
     return base64;
   }
 
-  async sendCartasEmail(solicitacaoId: number): Promise<{ success: boolean; message: string; emailsEnviados: number }> {
+  /**
+   * Gera PDF de preview e cacheia com chave específica para reutilização
+   * Este método é usado no wizard para preview e cacheia o PDF para uso posterior
+   */
+  async generatePreviewPdfWithCache(data: {
+    banco_id: number;
+    produto: string;
+    formData: any;
+    fornecedor_van: string;
+    cacheKey?: string; // Chave opcional para cache personalizado
+  }): Promise<{ pdfBase64: string; cacheKey: string }> {
+    console.log(`🔍 Service: Iniciando generatePreviewPdfWithCache para produto ${data.produto}`);
+    
+    const { banco_id, produto, formData, fornecedor_van, cacheKey } = data;
+    
+    // Gerar chave de cache única baseada nos dados
+    const cacheKeyGenerated = cacheKey || this.generateCacheKey({
+      banco_id,
+      produto,
+      formData,
+      fornecedor_van
+    });
+    
+    console.log(`🔑 Service: Chave de cache: ${cacheKeyGenerated}`);
+    
+    // Tentar recuperar do cache primeiro
+    const cachedPdf = await this.redisService.getPdf(cacheKeyGenerated);
+    if (cachedPdf) {
+      console.log(`✅ Service: PDF encontrado no cache (${cachedPdf.length} bytes)`);
+      return {
+        pdfBase64: cachedPdf.toString('base64'),
+        cacheKey: cacheKeyGenerated
+      };
+    }
+    
+    // Se não estiver no cache, gerar novo PDF
+    console.log(`📄 Service: Gerando novo PDF...`);
+    const pdfBase64 = await this.generatePreviewPdf({
+      banco_id,
+      produto,
+      formData,
+      fornecedor_van
+    });
+    
+    // Cachear o PDF gerado
+    const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+    await this.redisService.setPdf(cacheKeyGenerated, pdfBuffer, 3600); // Cache por 1 hora
+    console.log(`💾 Service: PDF cacheado com sucesso`);
+    
+    return {
+      pdfBase64,
+      cacheKey: cacheKeyGenerated
+    };
+  }
+
+  /**
+   * Recupera PDF do cache usando a chave fornecida
+   */
+  async getPdfFromCache(cacheKey: string): Promise<Buffer | null> {
+    console.log(`🔍 Service: Recuperando PDF do cache com chave: ${cacheKey}`);
+    const pdfBuffer = await this.redisService.getPdf(cacheKey);
+    
+    if (pdfBuffer) {
+      console.log(`✅ Service: PDF recuperado do cache (${pdfBuffer.length} bytes)`);
+    } else {
+      console.log(`❌ Service: PDF não encontrado no cache`);
+    }
+    
+    return pdfBuffer;
+  }
+
+  /**
+   * Gera chave de cache única baseada nos dados
+   */
+  private generateCacheKey(data: {
+    banco_id: number;
+    produto: string;
+    formData: any;
+    fornecedor_van: string;
+  }): string {
+    const hash = require('crypto').createHash('md5');
+    const dataString = JSON.stringify({
+      banco_id: data.banco_id,
+      produto: data.produto,
+      fornecedor_van: data.fornecedor_van,
+      // Incluir apenas campos relevantes do formData para evitar chaves muito longas
+      formData: {
+        razao_social: data.formData.razao_social,
+        cnpj_emitente: data.formData.cnpj_emitente,
+        agencia: data.formData.agencia,
+        conta: data.formData.conta,
+        convenio: data.formData.convenio,
+        cnab: data.formData.cnab
+      }
+    });
+    hash.update(dataString);
+    return `preview:${hash.digest('hex')}`;
+  }
+
+  /**
+   * Envia cartas por email usando PDFs do cache quando possível
+   */
+  async sendCartasEmail(solicitacaoId: number, cacheKeys?: string[]): Promise<{ success: boolean; message: string; emailsEnviados: number }> {
     try {
       console.log(`🚀 Iniciando envio de emails para solicitação ${solicitacaoId}`);
       
@@ -357,10 +459,23 @@ export class SolicitacoesService {
       try {
         console.log(`📧 Gerando PDF para produto: ${produto}`);
         
-        // Gerar PDF para o produto específico
-        const pdfBuffer = await this.generatePdfForProduct(solicitacao, usuario, banco, produto);
+        let pdfBuffer: Buffer | null = null;
         
-        console.log(`📄 PDF gerado com sucesso para ${produto} (${pdfBuffer.length} bytes)`);
+        // Se temos cacheKeys, tentar usar o PDF do cache
+        if (cacheKeys && cacheKeys.length > 0) {
+          console.log(`🔍 Tentando recuperar PDF do cache...`);
+          pdfBuffer = await this.getPdfFromCache(cacheKeys[0]);
+        }
+        
+        // Se não encontrou no cache, gerar novo PDF
+        if (!pdfBuffer) {
+          console.log(`📄 Gerando novo PDF para ${produto}`);
+          pdfBuffer = await this.generatePdfForProduct(solicitacao, usuario, banco, produto);
+        } else {
+          console.log(`✅ PDF recuperado do cache para ${produto}`);
+        }
+        
+        console.log(`📄 PDF pronto para envio - ${produto} (${pdfBuffer.length} bytes)`);
 
         // Enviar email
         const emailEnviado = await this.emailService.sendCartaEmail({
@@ -408,7 +523,10 @@ export class SolicitacoesService {
     }
   }
 
-  async integrateZapier(solicitacaoId: number): Promise<{ success: boolean; message: string; integracoesEnviadas: number }> {
+  /**
+   * Integra com Zapier usando PDFs do cache quando possível
+   */
+  async integrateZapier(solicitacaoId: number, cacheKeys?: string[]): Promise<{ success: boolean; message: string; integracoesEnviadas: number }> {
     try {
       console.log(`🔗 Iniciando integração Zapier para solicitação ${solicitacaoId}`);
       
@@ -436,11 +554,24 @@ export class SolicitacoesService {
       try {
         console.log(`🔗 Gerando PDF para integração Zapier - Produto: ${produto}`);
         
-        // Gerar PDF para o produto específico
-        const pdfBuffer = await this.generatePdfForProduct(solicitacao, usuario, banco, produto);
-        const pdfBase64 = pdfBuffer.toString('base64');
+        let pdfBuffer: Buffer | null = null;
         
-        console.log(`📄 PDF gerado para Zapier - ${produto} (${pdfBuffer.length} bytes)`);
+        // Se temos cacheKeys, tentar usar o PDF do cache
+        if (cacheKeys && cacheKeys.length > 0) {
+          console.log(`🔍 Tentando recuperar PDF do cache para Zapier...`);
+          pdfBuffer = await this.getPdfFromCache(cacheKeys[0]);
+        }
+        
+        // Se não encontrou no cache, gerar novo PDF
+        if (!pdfBuffer) {
+          console.log(`📄 Gerando novo PDF para Zapier - ${produto}`);
+          pdfBuffer = await this.generatePdfForProduct(solicitacao, usuario, banco, produto);
+        } else {
+          console.log(`✅ PDF recuperado do cache para Zapier - ${produto}`);
+        }
+        
+        const pdfBase64 = pdfBuffer.toString('base64');
+        console.log(`📄 PDF pronto para Zapier - ${produto} (${pdfBuffer.length} bytes)`);
 
         // Preparar dados para Zapier
         const dadosZapier = {
@@ -489,6 +620,54 @@ export class SolicitacoesService {
       console.error(`❌ Erro geral na integração Zapier:`, error.message);
       throw new HttpException(
         `Erro na integração Zapier: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Processa solicitação completa usando PDFs do cache
+   */
+  async processarCompleto(solicitacaoId: number, cacheKeys?: string[]): Promise<{
+    success: boolean;
+    message: string;
+    resultados: {
+      emails: { success: boolean; message: string; emailsEnviados: number };
+      zapier: { success: boolean; message: string; integracoesEnviadas: number };
+      finalizacao: { success: boolean; message: string };
+    };
+    solicitacao: any;
+  }> {
+    try {
+      console.log(`🚀 Iniciando processamento completo para solicitação ${solicitacaoId}`);
+      
+      // Processar emails
+      const resultadoEmails = await this.sendCartasEmail(solicitacaoId, cacheKeys);
+      
+      // Processar Zapier
+      const resultadoZapier = await this.integrateZapier(solicitacaoId, cacheKeys);
+      
+      // Finalizar solicitação
+      const solicitacao = await this.finalizarSolicitacao(solicitacaoId);
+      
+      return {
+        success: resultadoEmails.success && resultadoZapier.success,
+        message: 'Processamento completo finalizado',
+        resultados: {
+          emails: resultadoEmails,
+          zapier: resultadoZapier,
+          finalizacao: {
+            success: true,
+            message: 'Solicitação finalizada com sucesso'
+          }
+        },
+        solicitacao
+      };
+      
+    } catch (error) {
+      console.error(`❌ Erro no processamento completo:`, error.message);
+      throw new HttpException(
+        `Erro no processamento completo: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }

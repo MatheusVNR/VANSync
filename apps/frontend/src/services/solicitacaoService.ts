@@ -46,6 +46,13 @@ export interface DashboardStats {
   solicitacoes_rejeitadas: number;
 }
 
+export interface PreviewPDFResult {
+  produto: string;
+  pdfBase64: string;
+  cacheKey: string;
+  titulo: string;
+}
+
 class SolicitacaoService {
   async create(solicitacao: SolicitacaoCarta): Promise<SolicitacaoResponse> {
     try {
@@ -83,18 +90,68 @@ class SolicitacaoService {
     }
   }
 
-  async sendCartasEmail(solicitacaoId: number): Promise<{ success: boolean; message: string; emailsEnviados: number }> {
+  /**
+   * Gera preview PDF com cache (novo método)
+   */
+  async generatePreviewPDFsWithCache(data: {
+    banco_id: number;
+    produtos: string[];
+    formData: any;
+    fornecedor_van: string;
+  }): Promise<{
+    success: boolean;
+    pdfs?: PreviewPDFResult[];
+    message?: string;
+  }> {
     try {
-      const response = await axiosInstance.post(`/solicitacoes/${solicitacaoId}/send-emails`);
+      const response = await axiosInstance.post('/solicitacoes/preview-pdf-with-cache', data);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao gerar PDFs de preview com cache');
+    }
+  }
+
+  /**
+   * Gera preview PDF sem cache (método legado)
+   */
+  async generatePreviewPDFs(data: {
+    banco_id: number;
+    produtos: string[];
+    formData: any;
+    fornecedor_van: string;
+  }): Promise<{
+    success: boolean;
+    pdfs?: Array<{
+      produto: string;
+      pdfBase64: string;
+      titulo: string;
+    }>;
+    message?: string;
+  }> {
+    try {
+      const response = await axiosInstance.post('/solicitacoes/preview-pdf', data);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao gerar PDFs de preview');
+    }
+  }
+
+  async sendCartasEmail(solicitacaoId: number, cacheKeys?: string[]): Promise<{ success: boolean; message: string; emailsEnviados: number }> {
+    try {
+      const response = await axiosInstance.post(`/solicitacoes/${solicitacaoId}/send-emails`, {
+        cacheKeys
+      });
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erro ao enviar e-mails das cartas');
     }
   }
 
-  async integrateZapier(solicitacaoId: number): Promise<{ success: boolean; message: string; integracoesEnviadas: number }> {
+  async integrateZapier(solicitacaoId: number, cacheKeys?: string[]): Promise<{ success: boolean; message: string; integracoesEnviadas: number }> {
     try {
-      const response = await axiosInstance.post(`/solicitacoes/${solicitacaoId}/zapier-integration`);
+      const response = await axiosInstance.post(`/solicitacoes/${solicitacaoId}/zapier-integration`, {
+        cacheKeys
+      });
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erro ao integrar com Zapier');
@@ -125,7 +182,33 @@ class SolicitacaoService {
     }
   }
 
-  async processarCompleto(solicitacaoId: number): Promise<{
+  /**
+   * Processa solicitação completa usando cache (novo método)
+   */
+  async processarCompleto(solicitacaoId: number, cacheKeys?: string[]): Promise<{
+    success: boolean;
+    message: string;
+    resultados: {
+      emails: { success: boolean; message: string; emailsEnviados: number };
+      zapier: { success: boolean; message: string; integracoesEnviadas: number };
+      finalizacao: { success: boolean; message: string };
+    };
+    solicitacao: any;
+  }> {
+    try {
+      const response = await axiosInstance.post(`/solicitacoes/${solicitacaoId}/processar-completo`, {
+        cacheKeys
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro no processamento completo');
+    }
+  }
+
+  /**
+   * Processa solicitação completa sem cache (método legado)
+   */
+  async processarCompletoLegacy(solicitacaoId: number): Promise<{
     success: boolean;
     message: string;
     resultados: {
@@ -158,28 +241,6 @@ class SolicitacaoService {
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erro ao buscar estatísticas');
-    }
-  }
-
-  async generatePreviewPDFs(data: {
-    banco_id: number;
-    produtos: string[];
-    formData: any;
-    fornecedor_van: string;
-  }): Promise<{
-    success: boolean;
-    pdfs?: Array<{
-      produto: string;
-      pdfBase64: string;
-      titulo: string;
-    }>;
-    message?: string;
-  }> {
-    try {
-      const response = await axiosInstance.post('/solicitacoes/preview-pdf', data);
-      return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erro ao gerar PDFs de preview');
     }
   }
 

@@ -289,48 +289,61 @@ const WizardCartaVan: React.FC = () => {
       let solicitacoesCriadas = 0;
       let emailsEnviados = 0;
       let integracoesZapier = 0;
+      const cacheKeys: string[] = [];
 
-      // Processar cada produto separadamente
+      // 1. Primeiro, gerar todos os PDFs com cache para reutilização
+      console.log(`🔄 Gerando PDFs com cache para ${selectedProducts.length} produtos...`);
+      
+      const pdfData = {
+        banco_id: selectedBank.codigo,
+        produtos: selectedProducts,
+        formData: {
+          razao_social: formData.razaoSocial,
+          cnpj_emitente: formData.cnpjEmitente,
+          nome_responsavel: formData.nomeResponsavel,
+          cargo_responsavel: formData.cargoResponsavel,
+          telefone: formData.telefone,
+          email: formData.email,
+          agencia: formData.agencia,
+          agencia_dv: formData.agenciaDV,
+          conta: formData.conta,
+          conta_dv: formData.contaDV,
+          convenio: formData.convenio,
+          cnab: formData.cnab,
+          nome_gerente: formData.nomeGerente,
+          telefone_gerente: formData.telefoneGerente,
+          email_gerente: formData.emailGerente,
+          cnpj_software_house: formData.cnpjSoftwareHouse
+        },
+        fornecedor_van: fornecedorVan
+      };
+
+      const pdfResult = await solicitacaoService.generatePreviewPDFsWithCache(pdfData);
+      if (!pdfResult.success || !pdfResult.pdfs || pdfResult.pdfs.length === 0) {
+        throw new Error('Falha ao gerar PDFs com cache');
+      }
+
+      // Extrair cache keys dos PDFs gerados
+      pdfResult.pdfs.forEach(pdf => {
+        if (pdf.cacheKey) {
+          cacheKeys.push(pdf.cacheKey);
+        }
+      });
+
+      console.log(`✅ PDFs gerados com cache. Cache keys:`, cacheKeys);
+
+      // 2. Processar cada produto usando os PDFs cacheados
       for (const produto of selectedProducts) {
         try {
           console.log(`🔄 Processando produto: ${produto}`);
           
-          // 1. Gerar PDF para este produto (para enviar ao Zapier)
-          const pdfData = {
-            banco_id: selectedBank.codigo,
-            produtos: [produto], // Array com um produto
-            formData: {
-              razao_social: formData.razaoSocial,
-              cnpj_emitente: formData.cnpjEmitente,
-              nome_responsavel: formData.nomeResponsavel,
-              cargo_responsavel: formData.cargoResponsavel,
-              telefone: formData.telefone,
-              email: formData.email,
-              agencia: formData.agencia,
-              agencia_dv: formData.agenciaDV,
-              conta: formData.conta,
-              conta_dv: formData.contaDV,
-              convenio: formData.convenio,
-              cnab: formData.cnab,
-              nome_gerente: formData.nomeGerente,
-              telefone_gerente: formData.telefoneGerente,
-              email_gerente: formData.emailGerente,
-              cnpj_software_house: formData.cnpjSoftwareHouse
-            },
-            fornecedor_van: fornecedorVan
-          };
-
-          const pdfResult = await solicitacaoService.generatePreviewPDFs(pdfData);
-          if (!pdfResult.success || !pdfResult.pdfs || pdfResult.pdfs.length === 0) {
-            throw new Error(`Falha ao gerar PDF para ${produto}`);
-          }
-
+          // Encontrar o PDF correspondente ao produto
           const pdfCarta = pdfResult.pdfs.find(pdf => pdf.produto === produto);
           if (!pdfCarta) {
             throw new Error(`PDF não encontrado para ${produto}`);
           }
 
-          // 2. Enviar para Zapier primeiro (com PDF em base64)
+          // 3. Enviar para Zapier usando o PDF do cache
           const zapierData = {
             cnpj_sh: currentUser.cnpj,
             email: formData.email,
@@ -347,7 +360,7 @@ const WizardCartaVan: React.FC = () => {
           integracoesZapier++;
           console.log(`✅ Zapier integrado para ${produto}`);
 
-          // 3. Se Zapier foi bem-sucedido, criar solicitação no banco (status em aberto)
+          // 4. Criar solicitação no banco (status em aberto)
           const solicitacao: SolicitacaoCarta = {
             cnpj: currentUser.cnpj,
             banco_id: selectedBank.codigo,
@@ -375,16 +388,16 @@ const WizardCartaVan: React.FC = () => {
           solicitacoesCriadas++;
           console.log(`✅ Solicitação criada para ${produto}:`, response.id);
 
-          // 4. Enviar email com PDF anexado (opcional - pode ser feito pelo admin)
-          const emailResult = await solicitacaoService.sendCartasEmail(response.id);
+          // 5. Enviar email usando PDF do cache
+          const emailResult = await solicitacaoService.sendCartasEmail(response.id, [pdfCarta.cacheKey]);
           if (emailResult.success) {
             emailsEnviados++;
-            console.log(`✅ Email enviado para ${produto}`);
+            console.log(`✅ Email enviado para ${produto} usando PDF do cache`);
           } else {
             console.warn(`⚠️ Falha no email para ${produto}:`, emailResult.message);
           }
 
-          // 5. Solicitação criada com status em_aberto - aprovação será feita pelo painel admin
+          // 6. Solicitação criada com status em_aberto - aprovação será feita pelo painel admin
           console.log(`✅ Solicitação criada com status em_aberto para ${produto}`);
 
           resultados.push({
@@ -392,7 +405,8 @@ const WizardCartaVan: React.FC = () => {
             success: true,
             solicitacaoId: response.id,
             zapierSuccess: true,
-            emailSuccess: emailResult.success
+            emailSuccess: emailResult.success,
+            cacheKey: pdfCarta.cacheKey
           });
 
         } catch (error: any) {
@@ -421,10 +435,9 @@ const WizardCartaVan: React.FC = () => {
       }
       setSuccess(mensagem);
       
-      // Não redirecionar automaticamente - usuário decide quando sair
-      // setTimeout(() => {
-      //   navigate('/menu');
-      // }, 5000);
+      console.log(`🎉 Processamento completo finalizado!`);
+      console.log(`📊 Resumo: ${solicitacoesCriadas} solicitações criadas, ${emailsEnviados} emails enviados, ${integracoesZapier} integrações Zapier`);
+      console.log(`🔑 Cache keys utilizadas:`, cacheKeys);
       
     } catch (err: any) {
       console.error('❌ Erro ao processar solicitações:', err);
