@@ -47,7 +47,8 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
     const htmlContent = await this.templatesService.generateCartaContent({
         banco: data.banco,
         dados: data,
-        produtos: data.produtos,
+        produto: data.produto || data.produtos, // Para template Finnet
+        produtos: data.produtos, // Para template Nexxera
         cnab: data.cnab,
     });
 
@@ -107,7 +108,8 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
     const htmlContent = await this.templatesService.generateCartaContent({
       banco: data.banco,
       dados: data.dados,
-      produtos: data.produtos,
+      produto: data.produto || data.produtos, // Para template Finnet
+      produtos: data.produtos, // Para template Nexxera
       cnab: data.cnab,
     });
 

@@ -282,6 +282,16 @@ export class SolicitacoesService {
     const padraoVan = fornecedor_van.toLowerCase();
     console.log(`🔧 Service: Padrão VAN: ${padraoVan}`);
     
+    // Converter valores CNAB para formato esperado pelo template Finnet
+    const converterCnab = (cnab: string) => {
+      if (cnab === 'CNAB240') return '240';
+      if (cnab === 'CNAB400') return '400';
+      if (cnab === 'CNAB444') return '444';
+      return cnab; // Manter original se não for um dos valores conhecidos
+    };
+    
+    const cnabConvertido = converterCnab(formData.cnab);
+    
     // Preparar dados para o template
     console.log(`📋 Service: Preparando dados para template`);
     const templateData = {
@@ -302,7 +312,7 @@ export class SolicitacoesService {
         conta: formData.conta,
         contaDV: formData.conta_dv,
         convenio: formData.convenio,
-        cnab: formData.cnab,
+        cnab: cnabConvertido,
         nomeGerente: formData.nome_gerente,
         telefoneGerente: formData.telefone_gerente,
         emailGerente: formData.email_gerente,
@@ -312,8 +322,9 @@ export class SolicitacoesService {
         estado: formData.estado || '',
         preferenciaContato: formData.preferencia_contato_gerente || 'Email'
       },
-      produtos: [produto],
-      cnab: formData.cnab
+      produto: [produto], // Para template Finnet
+      produtos: [produto], // Para template Nexxera
+      cnab: cnabConvertido
     };
 
     console.log(`📄 Service: Chamando pdfService.generatePdfFromTemplate`);
@@ -705,6 +716,21 @@ export class SolicitacoesService {
   }
 
   private async generatePdfForProduct(solicitacao: any, usuario: any, banco: any, produto: string): Promise<Buffer> {
+    // Garantir que produto e cnab sejam arrays
+    const produtosArray = Array.isArray(solicitacao.produto) ? solicitacao.produto : [solicitacao.produto];
+    
+    // Converter valores CNAB para formato esperado pelo template Finnet
+    const converterCnab = (cnab: string) => {
+      if (cnab === 'CNAB240') return '240';
+      if (cnab === 'CNAB400') return '400';
+      if (cnab === 'CNAB444') return '444';
+      return cnab; // Manter original se não for um dos valores conhecidos
+    };
+    
+    const cnabArray = Array.isArray(solicitacao.dados_carta.cnab) 
+      ? solicitacao.dados_carta.cnab.map(converterCnab)
+      : [converterCnab(solicitacao.dados_carta.cnab)];
+
     // Preparar dados para o template usando os dados reais da solicitação
     const templateData = {
       banco: {
@@ -724,7 +750,7 @@ export class SolicitacoesService {
         conta: solicitacao.dados_carta.conta || '00000000000000000000',
         contaDV: solicitacao.dados_carta.conta_dv || '0',
         convenio: solicitacao.dados_carta.convenio || '00000000000000000000',
-        cnab: solicitacao.dados_carta.cnab,
+        cnab: cnabArray,
         nomeGerente: solicitacao.dados_carta.gerente_nome,
         telefoneGerente: solicitacao.dados_carta.gerente_telefone,
         emailGerente: solicitacao.dados_carta.gerente_email,
@@ -734,8 +760,9 @@ export class SolicitacoesService {
         estado: solicitacao.dados_carta.estado || '',
         preferenciaContato: solicitacao.dados_carta.preferencia_contato_gerente || 'Email'
       },
-      produtos: [produto],
-      cnab: solicitacao.dados_carta.cnab
+      produto: produtosArray, // Para template Finnet
+      produtos: produtosArray, // Para template Nexxera
+      cnab: cnabArray
     };
 
     // Determinar o padrão VAN baseado no fornecedor

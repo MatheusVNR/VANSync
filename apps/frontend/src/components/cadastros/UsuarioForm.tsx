@@ -197,6 +197,7 @@ const UsuarioForm: React.FC<UsuarioFormProps> = ({
         {/* Token - Criação */}
         {!initialData && (
           <TextField
+            name="token"
             label="Token"
             type="password"
             value={token}
@@ -247,12 +248,13 @@ const UsuarioForm: React.FC<UsuarioFormProps> = ({
                 </Typography>
                 
                 <TextField
+                  name="novoToken"
                   label="Novo Token"
                   type="password"
                   value={novoToken}
                   onChange={(e) => setNovoToken(e.target.value)}
                   fullWidth
-                  required
+                  required={showTokenFields}
                   error={!!errors.novoToken}
                   helperText={errors.novoToken || 'Digite o novo token (mínimo 6 caracteres)'}
                   sx={{ mb: 2 }}
@@ -261,12 +263,13 @@ const UsuarioForm: React.FC<UsuarioFormProps> = ({
                 />
                 
                 <TextField
+                  name="confirmarToken"
                   label="Confirmar Novo Token"
                   type="password"
                   value={confirmarToken}
                   onChange={(e) => setConfirmarToken(e.target.value)}
                   fullWidth
-                  required
+                  required={showTokenFields}
                   error={!!errors.confirmarToken}
                   helperText={errors.confirmarToken || 'Confirme o novo token'}
                   sx={{ mb: 1 }}
