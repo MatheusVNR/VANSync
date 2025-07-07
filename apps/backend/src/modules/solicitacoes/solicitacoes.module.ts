@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { SolicitacoesController } from './solicitacoes.controller';
 import { SolicitacoesService } from './solicitacoes.service';
@@ -16,7 +16,7 @@ import { ZapierModule } from '../zapier/zapier.module';
   imports: [
     SequelizeModule.forFeature([SolicitacaoCarta, Usuario, Banco]),
     UsuariosModule,
-    PdfModule,
+    forwardRef(() => PdfModule),
     TemplatesModule,
     RedisModule,
     EmailModule,

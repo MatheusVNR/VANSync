@@ -46,7 +46,7 @@ export class PdfService implements OnModuleInit, OnModuleDestroy {
 
     const htmlContent = await this.templatesService.generateCartaContent({
         banco: data.banco,
-        dados: data,
+        dados: data.dados,
         produtos: data.produtos,
         cnab: data.cnab,
     });
