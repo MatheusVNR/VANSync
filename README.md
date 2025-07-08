@@ -68,10 +68,10 @@ O projeto é estruturado em uma arquitetura monorepo com duas aplicações princ
 
 ```bash
 # Clonar o repositório
-git clone <repository-url>
+git clone https://github.com/MatheusVNR/VANSync.git
 cd VANSync
 
-# Instalar dependências do projeto
+# Instalar dependências do projeto (apps/backend e apps/frontend)
 npm install
 
 # Configurar variáveis de ambiente
@@ -90,7 +90,7 @@ npm run dev
 ## 🔧 Configuração
 
 ### Backend
-- Configure as variáveis de ambiente em `apps/backend/.env`
+- Configure as variáveis de ambiente em `apps/backend/.env` e `apps/frontend/.env` conforme especificado mais abaixo
 - Configure o banco de dados PostgreSQL
 - Configure o Redis para cache
 - Configure as integrações (Zapier, Email)
@@ -134,7 +134,7 @@ PORT=3000                      # Porta da API
 NODE_ENV=development          # Ambiente (development/production)
 ```
 
-### Frontend
+### Frontend (`apps/frontend/.env`)
 
 O frontend utiliza a URL da API configurada em `apps/frontend/src/utils/axiosInstance.ts`. Certifique-se de que a URL aponte para o backend correto:
 
