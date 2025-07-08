@@ -261,6 +261,28 @@ class SolicitacaoService {
       throw new Error(error.response?.data?.message || 'Erro ao buscar solicitações em aberto');
     }
   }
+
+  /**
+   * Faz o download do PDF da solicitação pelo ID
+   */
+  async downloadPdfById(id: number): Promise<void> {
+    try {
+      const response = await axiosInstance.get(`/solicitacoes/${id}/pdf`, {
+        responseType: 'blob',
+      });
+      // Cria um link temporário para download
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `carta-van-${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao baixar PDF da solicitação');
+    }
+  }
 }
 
 export const solicitacaoService = new SolicitacaoService(); 

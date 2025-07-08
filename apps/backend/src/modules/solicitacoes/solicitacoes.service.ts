@@ -55,6 +55,8 @@ export class SolicitacoesService {
     const dados_carta = {
       nome_empresa: dados.razao_social,
       cnpj_cliente: dados.cnpj_emitente,
+      nome_responsavel: dados.nome_responsavel,
+      cargo_responsavel: dados.cargo_responsavel,
       cidade: dados.cidade,
       estado: dados.estado,
       telefone: dados.telefone,
@@ -218,13 +220,8 @@ export class SolicitacoesService {
     const usuario = await this.usuarioModel.findByPk(solicitacao.usuario_id);
     const banco = await this.bancoModel.findByPk(solicitacao.banco_id);
 
-    const data = {
-      ...solicitacao.toJSON(),
-      usuario,
-      banco,
-    };
-
-    return this.pdfService.generatePdf(solicitacaoId, data);
+    // Gera PDF com dados preenchidos reais
+    return this.generatePdfForProduct(solicitacao, usuario, banco, solicitacao.produto);
   }
 
   /**
@@ -497,7 +494,8 @@ export class SolicitacoesService {
           dadosCliente: {
             razao_social: solicitacao.dados_carta.nome_empresa,
             cnpj_emitente: solicitacao.dados_carta.cnpj_cliente,
-            nome_responsavel: solicitacao.dados_carta.nome_empresa,
+            nome_responsavel: solicitacao.dados_carta.nome_responsavel,
+            cargo_responsavel: solicitacao.dados_carta.cargo_responsavel,
             email: solicitacao.dados_carta.email
           }
         });
@@ -741,8 +739,8 @@ export class SolicitacoesService {
       dados: {
         razaoSocial: solicitacao.dados_carta.nome_empresa,
         cnpjEmitente: solicitacao.dados_carta.cnpj_cliente,
-        nomeResponsavel: solicitacao.dados_carta.nome_empresa, // Usar nome da empresa como responsável
-        cargoResponsavel: 'Responsável', // Pode ser mantido fixo ou adicionado ao formulário
+        nomeResponsavel: solicitacao.dados_carta.nome_responsavel || solicitacao.dados_carta.nome_empresa, // Usar nome do responsável se disponível
+        cargoResponsavel: solicitacao.dados_carta.cargo_responsavel || 'Responsável', // Usar cargo do responsável se disponível
         telefone: solicitacao.dados_carta.telefone,
         email: solicitacao.dados_carta.email,
         agencia: solicitacao.dados_carta.agencia || '0001',

@@ -23,7 +23,7 @@ import {
   DialogActions,
   Button
 } from '@mui/material';
-import { Visibility as VisibilityIcon, Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import { Visibility as VisibilityIcon, Search as SearchIcon, Refresh as RefreshIcon, Download as DownloadIcon } from '@mui/icons-material';
 import { solicitacaoService, SolicitacaoResponse } from '../services/solicitacaoService';
 import { authService } from '../services/authService';
 import MainLayout from '../components/MainLayout';
@@ -52,6 +52,7 @@ const MinhasSolicitacoes: React.FC = () => {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [dadosCarta, setDadosCarta] = useState<any>(null);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -191,7 +192,7 @@ const MinhasSolicitacoes: React.FC = () => {
                       <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>Criada em</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>Atualizada em</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Dados da Carta</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Download Carta</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -227,10 +228,22 @@ const MinhasSolicitacoes: React.FC = () => {
                             <TableCell>{s.created_at ? new Date(s.created_at).toLocaleString('pt-BR') : '-'}</TableCell>
                             <TableCell>{s.updated_at ? new Date(s.updated_at).toLocaleString('pt-BR') : '-'}</TableCell>
                             <TableCell>
-                              <Tooltip title="Ver dados da carta">
-                                <IconButton onClick={() => handleShowDadosCarta(s.dados_carta)}>
-                                  <VisibilityIcon />
-                                </IconButton>
+                              <Tooltip title="Baixar PDF da carta">
+                                <span>
+                                  <IconButton
+                                    onClick={async () => {
+                                      setDownloadingId(s.id);
+                                      try {
+                                        await solicitacaoService.downloadPdfById(s.id);
+                                      } finally {
+                                        setDownloadingId(null);
+                                      }
+                                    }}
+                                    disabled={downloadingId === s.id}
+                                  >
+                                    {downloadingId === s.id ? <CircularProgress size={20} /> : <DownloadIcon />}
+                                  </IconButton>
+                                </span>
                               </Tooltip>
                             </TableCell>
                           </TableRow>

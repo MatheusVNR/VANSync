@@ -313,7 +313,10 @@ const WizardCartaVan: React.FC = () => {
           nome_gerente: formData.nomeGerente,
           telefone_gerente: formData.telefoneGerente,
           email_gerente: formData.emailGerente,
-          cnpj_software_house: formData.cnpjSoftwareHouse
+          cnpj_software_house: formData.cnpjSoftwareHouse,
+          cidade: formData.cidade,
+          estado: formData.estado,
+          preferencia_contato_gerente: formData.preferencia_contato_gerente
         },
         fornecedor_van: fornecedorVan
       };
@@ -382,6 +385,9 @@ const WizardCartaVan: React.FC = () => {
             nome_gerente: formData.nomeGerente,
             telefone_gerente: formData.telefoneGerente,
             email_gerente: formData.emailGerente,
+            cidade: formData.cidade,
+            estado: formData.estado,
+            preferencia_contato_gerente: formData.preferencia_contato_gerente
           };
 
           const response = await solicitacaoService.create(solicitacao);
